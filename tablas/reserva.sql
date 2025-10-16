@@ -1,82 +1,93 @@
 USE `mydb`;
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  TABLA: DOCUMENTACION
---  Documentos de identidad asociados a una persona.
+--  TABLA: RESERVA
+--  Encabezado de la reserva (estado, precios, moneda y vínculos a usuario/tarifa/promo).
 --  Campos clave:
---    • tipo:        DNI / PASAPORTE / OTRO.
---    • numero:      Identificador del documento.
---    • pais_emisor: Código ISO-3166-1 alfa-2 (AR, BR, US, etc.).
---    • estado:      VÁLIDO / VENCIDO / OBSERVADO / OTRO.
---    • fechas:      emisión y vencimiento del documento.
+--    • estado: NUEVA | CONFIRMADA | CANCELADA | CHECKIN | VOLADA.
+--    • codigo_reserva: localizador de 6 caracteres (ÚNICO).
+--    • totales: total_bruto / total_neto en 'moneda' (ISO-4217, p.ej. ARS, USD).
 --  Dependencias:
---    • persona(idpersona)  → a quién pertenece el documento.
---    • usuario(idusuario)  → auditoría (creado/actualizado/eliminado_por).
---  Notas:
---    • Mantiene trazabilidad completa con motivo de eliminación.
+--    • usuario(idusuario)   → dueño/cuenta que realiza la reserva (puede ser NULL).
+--    • tarifa(idtarifa)     → tarifa base aplicada.
+--    • promocion(idpromocion) → promoción aplicada.
+--    • usuario(idusuario)   → auditoría (creado/actualizado/eliminado_por).
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
 -- ───────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `documentacion`;
+DROP TABLE IF EXISTS `reserva`;
 
 -- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
 -- ───────────────────────────────────────────────────────────────────────────────
-CREATE TABLE `documentacion` (
+CREATE TABLE `reserva` (
   -- Identificador único
-  `iddocumentacion`       INT NOT NULL AUTO_INCREMENT,
+  `idreserva`               INT NOT NULL AUTO_INCREMENT,
 
-  -- Tipo y datos del documento
-  `tipo`                  ENUM('DNI', 'PASAPORTE', 'OTRO') NOT NULL,
-  `numero`                VARCHAR(32) NOT NULL,
-  `pais_emisor`           VARCHAR(2) NOT NULL,      -- ISO-3166-1 alfa-2
-  `estado`                ENUM('VALIDO', 'VENCIDO', 'OBSERVADO', 'OTRO') NOT NULL,
-  `autoridad`             VARCHAR(130) NOT NULL,    -- autoridad emisora
-  `fecha_emision`         DATETIME NOT NULL,
-  `fecha_vencimiento`     DATETIME NOT NULL,
-  `observacion`           TEXT NULL,                -- observaciones internas
+  -- Estado y localizador
+  `estado`                  ENUM('NUEVA','CONFIRMADA','CANCELADA','CHECKIN','VOLADA') NOT NULL,
+  `codigo_reserva`          CHAR(6) NOT NULL,     -- localizador único (ej.: ABC123)
+
+  -- Relaciones principales
+  `usuario_idusuario`       INT NULL,             -- puede ser anónima/guest → NULL
+  `tarifa_idtarifa`         INT NOT NULL,
+  `promocion_idpromocion`   INT NOT NULL,
+
+  -- Monetario
+  `moneda`                  CHAR(3) NOT NULL,     -- ISO-4217 (ARS, USD, ...)
+  `total_bruto`             DECIMAL(12,2) NOT NULL,
+  `total_neto`              DECIMAL(12,2) NOT NULL,
 
   -- Auditoría temporal
-  `creado_en`             DATETIME NOT NULL,
-  `actualizado_en`        DATETIME NOT NULL,
-  `eliminado_en`          DATETIME NULL,
+  `creado_en`               DATETIME NULL,
+  `actualizado_en`          DATETIME NULL,
+  `eliminado_en`            DATETIME NULL,
 
   -- Auditoría de usuarios
-  `creado_por`            INT NULL,
-  `actualizado_por`       INT NULL,
-  `eliminado_por`         INT NULL,
-  `eliminado_motivo`      VARCHAR(200) NULL,
-
-  -- Relación fuerte
-  `persona_idpersona`     INT NOT NULL,
+  `creado_por`              INT NULL,
+  `actualizado_por`         INT NULL,
+  `eliminado_por`           INT NULL,
+  `eliminado_motivo`        VARCHAR(200) NULL,
 
   -- Clave primaria
-  PRIMARY KEY (`iddocumentacion`),
+  PRIMARY KEY (`idreserva`),
 
   -- ────────────────
   -- Claves foráneas
   -- ────────────────
-  CONSTRAINT `fk_documentacion_persona1`
-    FOREIGN KEY (`persona_idpersona`)
-    REFERENCES `persona` (`idpersona`)
+  CONSTRAINT `fk_reserva_usuario1`
+    FOREIGN KEY (`usuario_idusuario`)
+    REFERENCES `usuario` (`idusuario`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_documentacion_creado_por`
+  CONSTRAINT `fk_reserva_tarifa1`
+    FOREIGN KEY (`tarifa_idtarifa`)
+    REFERENCES `tarifa` (`idtarifa`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+
+  CONSTRAINT `fk_reserva_promocion1`
+    FOREIGN KEY (`promocion_idpromocion`)
+    REFERENCES `promocion` (`idpromocion`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+
+  CONSTRAINT `fk_reserva_creado_por`
     FOREIGN KEY (`creado_por`)
     REFERENCES `usuario` (`idusuario`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_documentacion_actualizado_por`
+  CONSTRAINT `fk_reserva_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
     REFERENCES `usuario` (`idusuario`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_eliminado_por`
+  CONSTRAINT `fk_reserva_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
     REFERENCES `usuario` (`idusuario`)
     ON DELETE NO ACTION
@@ -84,12 +95,16 @@ CREATE TABLE `documentacion` (
 )
 ENGINE = InnoDB;
 
--- (Opcional) Buenas prácticas sugeridas:
--- • Índice para búsquedas frecuentes por persona:
---   CREATE INDEX `ix_documentacion_persona` ON `documentacion` (`persona_idpersona`);
--- • Índice por (tipo, numero, pais_emisor) si querés evitar duplicados por país:
---   CREATE UNIQUE INDEX `ux_doc_tipo_numero_pais` ON `documentacion` (`tipo`, `numero`, `pais_emisor`);
+-- Índice único para el localizador
+CREATE UNIQUE INDEX `codigo_reserva_UNIQUE` ON `reserva` (`codigo_reserva` ASC);
+
+-- (Opcionales recomendados)
+-- • Búsquedas por usuario/estado:
+--   CREATE INDEX `ix_reserva_usuario` ON `reserva` (`usuario_idusuario`);
+--   CREATE INDEX `ix_reserva_estado`  ON `reserva` (`estado`);
+-- • Búsquedas por fechas de auditoría:
+--   CREATE INDEX `ix_reserva_creado_en` ON `reserva` (`creado_en`);
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FIN TABLA: DOCUMENTACION
+--  FIN TABLA: RESERVA
 -- ═══════════════════════════════════════════════════════════════════════════════

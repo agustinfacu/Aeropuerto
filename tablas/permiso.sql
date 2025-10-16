@@ -1,81 +1,73 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: PERMISO
---  Rol: catálogo de permisos del sistema (scopes/acciones) para control de acceso.
---       Se asocia típicamente a roles mediante una tabla de cruce (p.ej. rol_permiso).
---  Relacionada con:
---    - usuario (FKs de auditoría): quién creó/actualizó/eliminó lógicamente.
---    - rol_permiso (otras tablas referencian idpermiso para asignación a roles).
--- =================================================================================================
+--  Catálogo de permisos (acciones atómicas) para el sistema.
+--  Ejemplos de `codigo`: 'USER_CREATE', 'FLIGHT_EDIT', 'CHECKIN_VIEW'.
+--  Dependencias:
+--    • Auditoría hacia usuario(idusuario): creado/actualizado/eliminado_por.
+--  Índices:
+--    • `codigo` único para evitar duplicados.
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`permiso`;
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Limpieza (solo para desarrollo)
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `permiso`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`permiso` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `permiso` (
+  -- Identificador único del permiso
+  `idpermiso`         INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idpermiso` INT NOT NULL AUTO_INCREMENT,      -- PK interna del permiso
+  -- Código técnico del permiso (clave funcional única)
+  `codigo`            VARCHAR(90) NOT NULL,
 
-  -- ===============================================================================================
-  -- 2) ATRIBUTOS PRINCIPALES
-  -- ===============================================================================================
-  `codigo`       VARCHAR(90)  NOT NULL,         -- Código único del permiso (ej.: 'USUARIOS_LEER')
-  `descripcion`  VARCHAR(200) NULL,             -- Descripción legible de la acción/alcance
+  -- Descripción legible del permiso
+  `descripcion`       VARCHAR(200) NULL,
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`       DATETIME   NOT NULL,        -- Cuándo se creó
-  `actualizado_en`  DATETIME   NOT NULL,        -- Última actualización
-  `eliminado_en`    DATETIME   NULL,            -- Marca de borrado lógico (si aplica)
+  -- Auditoría temporal
+  `creado_en`         DATETIME NOT NULL,
+  `actualizado_en`    DATETIME NOT NULL,
+  `eliminado_en`      DATETIME NULL,
 
-  `creado_por`      INT        NOT NULL,        -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT        NOT NULL,        -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por`   INT        NULL,            -- FK → usuario.idusuario (quién “elimina” lógicamente)
-  `eliminado_motivo` VARCHAR(200) NULL,         -- Motivo del borrado lógico (si existe)
+  -- Auditoría de usuarios (quién hizo qué)
+  `creado_por`        INT NULL,
+  `actualizado_por`   INT NULL,
+  `eliminado_por`     INT NULL,
+  `eliminado_motivo`  VARCHAR(200) NULL,
 
-  -- ===============================================================================================
-  -- 4) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Clave primaria
   PRIMARY KEY (`idpermiso`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas (auditoría)
+  -- ────────────────
   CONSTRAINT `fk_permiso_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_permiso_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_permiso_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- ÍNDICES / REGLAS DE UNICIDAD
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- Unicidad del código de permiso (identificador funcional)
-CREATE UNIQUE INDEX `codigo_UNIQUE`
-  ON `mydb`.`permiso` (`codigo` ASC) VISIBLE;
+-- Índice único para el código del permiso
+CREATE UNIQUE INDEX `codigo_UNIQUE` ON `permiso` (`codigo` ASC);
 
--- =================================================================================================
---  NOTAS DE USO
---  • Usá `codigo` como clave funcional para checks de autorización en la app.
---  • Asigná permisos a roles en la tabla de cruce (p.ej., rol_permiso).
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: PERMISO
+-- ═══════════════════════════════════════════════════════════════════════════════

@@ -1,107 +1,106 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: ASIENTO
---  Rol: define el plano físico de butacas INSTALADAS en UNA aeronave específica.
---       Cada fila+columna representa un asiento real (p.ej.: 12C) y su cabina/atributos especiales.
---  Relacionada con:
---    - aeronave (FK): a qué avión pertenece cada asiento.
---    - (indirecto) reservas/check-in: otras tablas podrían referenciar el código_asiento por vuelo.
--- =================================================================================================
+--  Asientos físicos de una aeronave: clase/cabina, fila y columna (letra).
+--  Campos clave:
+--    • cabina: 'primera clase' | 'ejecutivo' | 'economica'.
+--    • fila: número de fila (SMALLINT).
+--    • columna: letra de asiento (A, B, C, ...).
+--    • codigo_asiento: etiqueta legible (p.ej., 12A).
+--    • flags: asiento_bulkhead (mampara), asiento_en_salida (fila de emergencia).
+--  Dependencias:
+--    • aeronave(idaeronave) → a qué avión pertenece el asiento.
+--    • usuario(idusuario)   → auditoría (creado/actualizado/eliminado_por).
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`asiento`;
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `asiento`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`asiento` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `asiento` (
+  -- Identificador único
+  `idasiento`            INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idasiento` INT NOT NULL AUTO_INCREMENT,        -- PK interna del asiento
+  -- Identidad del asiento
+  `cabina`               ENUM('primera clase', 'ejecutivo', 'economica') NOT NULL,
+  `fila`                 SMALLINT NOT NULL,
+  `columna`              CHAR(1) NOT NULL,
+  `codigo_asiento`       VARCHAR(6) NOT NULL,  -- etiqueta legible (ej.: 12A)
 
-  -- ===============================================================================================
-  -- 2) ATRIBUTOS PRINCIPALES DEL ASIENTO
-  -- ===============================================================================================
-  `cabina`           ENUM('primera clase','ejecutivo','economica') NOT NULL,  -- Cabina a la que pertenece
-  `fila`             SMALLINT NOT NULL,               -- Número de fila (p.ej.: 12)
-  `columna`          CHAR(1)  NOT NULL,               -- Columna/letra (p.ej.: C)
-  `codigo_asiento`   VARCHAR(6) NOT NULL,             -- Identificador visible (p.ej.: '12C')
-  `asiento_bulkhead` TINYINT NOT NULL,                -- 1 si está junto al mamparo (bulkhead), 0 si no
-  `asiento_en_salida` TINYINT NOT NULL,               -- 1 si es fila de salida de emergencia, 0 si no
-  `nota`             VARCHAR(200) NULL,               -- Observaciones (visibilidad, reclinado, etc.)
+  -- Atributos del asiento
+  `asiento_bulkhead`     TINYINT NOT NULL,     -- 0/1: pegado a mampara
+  `asiento_en_salida`    TINYINT NOT NULL,     -- 0/1: fila de emergencia
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`       DATETIME   NULL,                  -- Cuándo se creó el registro
-  `actualizado_en`  DATETIME   NULL,                  -- Última actualización
-  `eliminado_en`    DATETIME   NULL,                  -- Marca de borrado lógico (si aplica)
-  `creado_por`      INT        NOT NULL,              -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT        NOT NULL,              -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por`   INT        NULL,                  -- FK → usuario.idusuario (quién “elimina” lógicamente)
-  `eliminado_motivo` VARCHAR(200) NULL,               -- Motivo del borrado lógico (si existe)
+  -- Auditoría temporal
+  `creado_en`            DATETIME NULL,
+  `actualizado_en`       DATETIME NULL,
+  `eliminado_en`         DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 4) RELACIÓN CON AERONAVE
-  -- ===============================================================================================
-  `aeronave_idaeronave` INT NOT NULL,                 -- FK → aeronave.idaeronave (dueño del asiento)
+  -- Auditoría de usuarios
+  `creado_por`           INT NULL,
+  `actualizado_por`      INT NULL,
+  `eliminado_por`        INT NULL,
+  `eliminado_motivo`     VARCHAR(200) NULL,
 
-  -- ===============================================================================================
-  -- 5) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Notas y relación fuerte
+  `nota`                 VARCHAR(200) NULL,
+  `aeronave_idaeronave`  INT NOT NULL,
+
+  -- Clave primaria
   PRIMARY KEY (`idasiento`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas
+  -- ────────────────
   CONSTRAINT `fk_asiento_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_asiento_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_asiento_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FK con aeronave → aeronave(idaeronave)
-  -- ------------------------------------------------------------------------------------------------
   CONSTRAINT `fk_asiento_aeronave1`
     FOREIGN KEY (`aeronave_idaeronave`)
-    REFERENCES `mydb`.`aeronave` (`idaeronave`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION
+    REFERENCES `aeronave` (`idaeronave`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- ÍNDICES / REGLAS DE UNICIDAD
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- NOTA: Estos índices UNIQUE están copiados tal cual tu definición original.
---       En producción normalmente se usa un UNIQUE compuesto por (aeronave_idaeronave, cabina, fila, columna)
---       o bien por (aeronave_idaeronave, codigo_asiento), para no bloquear valores repetidos entre aeronaves.
-CREATE UNIQUE INDEX `cabina_UNIQUE`
-  ON `mydb`.`asiento` (`cabina` ASC) VISIBLE;
+-- Índices ÚNICOS (tal como en tu esquema original)
+CREATE UNIQUE INDEX `cabina_UNIQUE`  ON `asiento` (`cabina`  ASC);
+CREATE UNIQUE INDEX `fila_UNIQUE`    ON `asiento` (`fila`    ASC);
+CREATE UNIQUE INDEX `columna_UNIQUE` ON `asiento` (`columna` ASC);
 
-CREATE UNIQUE INDEX `fila_UNIQUE`
-  ON `mydb`.`asiento` (`fila` ASC) VISIBLE;
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Alternativa recomendada (OPCIONAL, no ejecutar si mantenés los UNIQUE de arriba):
+-- Para evitar duplicados de asientos dentro de una misma aeronave,
+-- suele usarse un índice único compuesto por (aeronave, cabina, fila, columna).
+-- Descomentar si querés esa lógica y eliminar los tres UNIQUE individuales.
+--
+-- -- DROP INDEX `cabina_UNIQUE`  ON `asiento`;
+-- -- DROP INDEX `fila_UNIQUE`    ON `asiento`;
+-- -- DROP INDEX `columna_UNIQUE` ON `asiento`;
+-- -- CREATE UNIQUE INDEX `ux_asiento_por_aeronave`
+-- --   ON `asiento` (`aeronave_idaeronave`, `cabina`, `fila`, `columna`);
+-- ───────────────────────────────────────────────────────────────────────────────
 
-CREATE UNIQUE INDEX `columna_UNIQUE`
-  ON `mydb`.`asiento` (`columna` ASC) VISIBLE;
-
--- =================================================================================================
---  NOTAS DE USO
---  • Representa asientos físicos de UNA aeronave (no de un vuelo específico).
---  • Se puede cruzar con asignaciones de asiento por vuelo/reserva (en otras tablas) usando el código.
---  • Los flags bulkhead/salida sirven para reglas de elegibilidad y pricing diferenciado.
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: ASIENTO
+-- ═══════════════════════════════════════════════════════════════════════════════

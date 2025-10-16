@@ -1,92 +1,89 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: TELEFONO
---  Rol: teléfonos de contacto asociados a una PERSONA.
---       Permite múltiples teléfonos por persona, marcando uno como principal y si usa WhatsApp.
---  Relacionada con:
---    - persona (FK): dueño del teléfono.
---    - usuario  (FKs de auditoría): responsables de creación/actualización/borrado lógico.
--- =================================================================================================
+--  Teléfonos asociados a una persona (móvil, fijo, trabajo, etc.).
+--  Campos clave:
+--    • tipo: clasifica el teléfono (ENUM).
+--    • es_principal: marca el teléfono preferido de contacto (0/1).
+--    • es_whatssap: indica si el número usa WhatsApp (0/1).  ← (sic)
+--  Dependencias:
+--    • persona(idpersona)  → titular del teléfono.
+--    • usuario(idusuario)  → auditoría (creado/actualizado/eliminado_por).
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`telefono`;
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `telefono`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`telefono` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `telefono` (
+  -- Identificador único
+  `idtelefono`           INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idtelefono` INT NOT NULL AUTO_INCREMENT,          -- PK interna del teléfono
+  -- Datos del teléfono
+  `tipo`                 ENUM('movil', 'fijo', 'trabajo', 'otro') NOT NULL,
+  `numero`               VARCHAR(35) NOT NULL,
+  `es_whatssap`          TINYINT NOT NULL,        -- 0 = no, 1 = sí (nombre heredado)
+  `extension`            VARCHAR(6) NULL,         -- interno / extensión
+  `es_principal`         TINYINT NOT NULL,        -- 0 = no, 1 = sí
 
-  -- ===============================================================================================
-  -- 2) ATRIBUTOS PRINCIPALES
-  -- ===============================================================================================
-  `tipo`         ENUM('movil','fijo','trabajo','otro') NOT NULL, -- Tipo de línea
-  `numero`       VARCHAR(35) NOT NULL,               -- Número telefónico (incluir código país/área si aplica)
-  `es_whatssap`  TINYINT NOT NULL,                   -- (sic, nombre tal cual) 1=usa WhatsApp, 0=no
-  `extension`    VARCHAR(6)  NULL,                   -- Extensión (para internos de oficina)
-  `es_principal` TINYINT NOT NULL,                   -- 1=principal para la persona, 0=secundario
+  -- Auditoría temporal
+  `creado_en`            DATETIME NOT NULL,
+  `actualizado_en`       DATETIME NOT NULL,
+  `eliminado_en`         DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`       DATETIME NOT NULL,               -- Cuándo se creó
-  `actualizado_en`  DATETIME NOT NULL,               -- Última actualización
-  `eliminado_en`    DATETIME NULL,                   -- Marca de borrado lógico (si aplica)
+  -- Auditoría de usuario
+  `creado_por`           INT NULL,
+  `actualizado_por`      INT NULL,
+  `eliminado_por`        INT NULL,
+  `eliminado_motivo`     VARCHAR(200) NULL,
 
-  `creado_por`      INT NOT NULL,                    -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT NOT NULL,                    -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por`   INT NULL,                        -- FK → usuario.idusuario (quién “elimina” lógicamente)
-  `eliminado_motivo` VARCHAR(200) NULL,              -- Motivo del borrado lógico (si existe)
+  -- Relación fuerte
+  `persona_idpersona`    INT NOT NULL,
 
-  -- ===============================================================================================
-  -- 4) RELACIÓN CON PERSONA
-  -- ===============================================================================================
-  `persona_idpersona` INT NOT NULL,                  -- FK → persona.idpersona (titular del teléfono)
-
-  -- ===============================================================================================
-  -- 5) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Clave primaria
   PRIMARY KEY (`idtelefono`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FK con PERSONA → persona(idpersona)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas
+  -- ────────────────
   CONSTRAINT `fk_telefono_persona1`
     FOREIGN KEY (`persona_idpersona`)
-    REFERENCES `mydb`.`persona` (`idpersona`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `persona` (`idpersona`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- ------------------------------------------------------------------------------------------------
   CONSTRAINT `fk_telefono_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_telefono_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_telefono_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
--- =================================================================================================
---  NOTAS DE USO
---  • Podés agregar un índice para acelerar búsquedas por persona:
---      -- CREATE INDEX ix_telefono_persona ON mydb.telefono (persona_idpersona, es_principal);
---  • Si deseás validar formato E.164, hacelo desde la aplicación o con triggers/checks según tu versión.
---  • El campo `es_whatssap` conserva la ortografía original de tu DDL.
--- =================================================================================================
+-- (Opcionales recomendados)
+-- • Búsquedas por persona:
+--   CREATE INDEX `ix_telefono_persona` ON `telefono` (`persona_idpersona`);
+-- • Evitar números duplicados por persona:
+--   -- CREATE UNIQUE INDEX `ux_telefono_persona_numero`
+--   --   ON `telefono` (`persona_idpersona`, `numero`);
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: TELEFONO
+-- ═══════════════════════════════════════════════════════════════════════════════

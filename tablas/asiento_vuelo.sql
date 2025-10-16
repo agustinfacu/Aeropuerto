@@ -1,97 +1,97 @@
 USE `mydb`;
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  TABLA: DIRECCION
---  Direcciones asociadas a una persona (domicilio, laboral, comercial, etc.).
+--  TABLA: ASIENTO_VUELO
+--  Estado de cada asiento para un vuelo específico (inventario por vuelo).
 --  Campos clave:
---    • tipo: clasifica la dirección (ENUM).
---    • es_principal: marca la dirección principal de la persona (0/1).
+--    • estado: LIBRE | RESERVADO | EMITIDO | BLOQUEADO.
+--    • bloqueado_motivo: texto corto explicando el bloqueo (si aplica).
+--    • codigo_asiento: etiqueta human-friendly (ej.: 12A), redundante a `asiento`.
 --  Dependencias:
---    • persona(idpersona)  → titular de la dirección.
---    • usuario(idusuario)  → auditoría (creado/actualizado/eliminado_por).
---  Notas:
---    • Auditoría usa ON DELETE SET NULL para no perder la dirección si se borra
---      el usuario que realizó la acción.
+--    • vuelo(idvuelo)   → a qué vuelo pertenece el inventario.
+--    • asiento(idasiento) → asiento físico referenciado.
+--    • usuario(idusuario) → auditoría (creado/actualizado/eliminado_por).
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
 -- ───────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `direccion`;
+DROP TABLE IF EXISTS `asiento_vuelo`;
 
 -- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
 -- ───────────────────────────────────────────────────────────────────────────────
-CREATE TABLE `direccion` (
+CREATE TABLE `asiento_vuelo` (
   -- Identificador único
-  `iddireccion`       INT NOT NULL AUTO_INCREMENT,
+  `idasiento_vuelo`     INT NOT NULL AUTO_INCREMENT,
 
-  -- Clasificación y localización
-  `tipo`              ENUM('Domicilio', 'Laboral', 'Comercial', 'Otro') NOT NULL,
-  `pais`              CHAR(2) NOT NULL,          -- ISO-3166-1 alfa-2
-  `provincia`         VARCHAR(120) NULL,
-  `ciudad`            VARCHAR(120) NOT NULL,
-  `cp`                VARCHAR(15) NULL,          -- código postal
-  `calle`             VARCHAR(120) NOT NULL,
-  `numero`            VARCHAR(15) NOT NULL,
-  `piso`              VARCHAR(10) NULL,
-  `depto`             VARCHAR(10) NULL,
-  `comentario`        TEXT NULL,                 -- referencias, entre calles, etc.
-  `es_principal`      TINYINT NOT NULL,          -- 0 = no, 1 = sí
+  -- Relaciones principales
+  `vuelo_idvuelo`       INT NOT NULL,
+  `asiento_idasiento`   INT NOT NULL,
+
+  -- Estado y metadatos
+  `estado`              ENUM('LIBRE', 'RESERVADO', 'EMITIDO', 'BLOQUEADO') NOT NULL,
+  `bloqueado_motivo`    VARCHAR(100) NULL,
+  `codigo_asiento`      VARCHAR(6) NOT NULL,  -- ej.: 12A (útil para reportes/UI)
 
   -- Auditoría temporal
-  `creado_en`         DATETIME NOT NULL,
-  `actualizado_en`    DATETIME NOT NULL,
-  `eliminado_en`      DATETIME NULL,
+  `creado_en`           DATETIME NULL,
+  `actualizado_en`      DATETIME NULL,
+  `eliminado_en`        DATETIME NULL,
 
-  -- Auditoría de usuario
-  `creado_por`        INT NULL,
-  `actualizado_por`   INT NULL,
-  `eliminado_por`     INT NULL,
-  `eliminado_motivo`  VARCHAR(200) NULL,
-
-  -- Relación fuerte
-  `persona_idpersona` INT NOT NULL,
+  -- Auditoría de usuarios
+  `creado_por`          INT NULL,
+  `actualizado_por`     INT NULL,
+  `eliminado_por`       INT NULL,
+  `eliminado_motivo`    VARCHAR(200) NULL,
 
   -- Clave primaria
-  PRIMARY KEY (`iddireccion`),
+  PRIMARY KEY (`idasiento_vuelo`),
 
   -- ────────────────
   -- Claves foráneas
   -- ────────────────
-  CONSTRAINT `fk_direccion_persona`
-    FOREIGN KEY (`persona_idpersona`)
-    REFERENCES `persona` (`idpersona`)
+  CONSTRAINT `fk_asiento_vuelo_vuelo1`
+    FOREIGN KEY (`vuelo_idvuelo`)
+    REFERENCES `vuelo` (`idvuelo`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_direccion_creado_por`
+  CONSTRAINT `fk_asiento_vuelo_asiento1`
+    FOREIGN KEY (`asiento_idasiento`)
+    REFERENCES `asiento` (`idasiento`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+
+  CONSTRAINT `fk_asiento_vuelo_creado_por`
     FOREIGN KEY (`creado_por`)
     REFERENCES `usuario` (`idusuario`)
-    ON DELETE SET NULL
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_direccion_actualizado_por`
+  CONSTRAINT `fk_asiento_vuelo_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
     REFERENCES `usuario` (`idusuario`)
-    ON DELETE SET NULL
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_direccion_eliminado_por`
+  CONSTRAINT `fk_asiento_vuelo_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
     REFERENCES `usuario` (`idusuario`)
-    ON DELETE SET NULL
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
 -- (Opcionales recomendados)
--- • Búsquedas por persona:
---   CREATE INDEX `ix_direccion_persona` ON `direccion` (`persona_idpersona`);
--- • Única dirección principal por persona (si querés forzarla a nivel DB):
---   -- Requiere MySQL 8.0 con índices parciales simulados vía CHECK + trigger,
---   -- o resolver lógicamente en la aplicación.
+-- • Evitar duplicar el mismo asiento dentro del mismo vuelo:
+--   CREATE UNIQUE INDEX `ux_asiento_vuelo_vuelo_asiento`
+--     ON `asiento_vuelo` (`vuelo_idvuelo`, `asiento_idasiento`);
+-- • Búsquedas rápidas por vuelo:
+--   CREATE INDEX `ix_asiento_vuelo_vuelo` ON `asiento_vuelo` (`vuelo_idvuelo`);
+-- • Búsquedas por estado:
+--   CREATE INDEX `ix_asiento_vuelo_estado` ON `asiento_vuelo` (`estado`);
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FIN TABLA: DIRECCION
+--  FIN TABLA: ASIENTO_VUELO
 -- ═══════════════════════════════════════════════════════════════════════════════

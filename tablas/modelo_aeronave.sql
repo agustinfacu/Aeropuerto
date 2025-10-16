@@ -1,84 +1,87 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: MODELO_AERONAVE
---  Rol: catálogo técnico de modelos de aeronave (fabricante, familia, performance y capacidades).
---       Sirve de base para:
---         • asociar cada aeronave física a un modelo (tabla aeronave).
---         • definir plantillas de cabina por modelo (tabla configuracion_cabina).
---  Relacionada con:
---    - aeronave (otras tablas referencian idmodelo_aeronave desde aeronave).
---    - configuracion_cabina (otras tablas referencian idmodelo_aeronave).
---    - usuario (FKs de auditoría).
--- =================================================================================================
+--  Catálogo técnico de modelos de aeronave (fabricante, familia, capacidades).
+--  Campos clave:
+--    • fabricante + mdoelo (sic): identificación textual del modelo.
+--    • capacidades: asientos y bodega (kg), alcance y velocidad de crucero.
+--    • activo: habilita/deshabilita sin borrar físicamente.
+--  Dependencias:
+--    • usuario(idusuario) → auditoría (creado/actualizado/eliminado_por).
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`modelo_aeronave`;
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `modelo_aeronave`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`modelo_aeronave` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `modelo_aeronave` (
+  -- Identificador único
+  `idmodelo_aeronave`      INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idmodelo_aeronave` INT NOT NULL AUTO_INCREMENT,  -- PK interna del modelo
+  -- Identificación del modelo
+  `fabricante`             VARCHAR(80) NOT NULL,
+  `mdoelo`                 VARCHAR(80) NOT NULL,   -- ← (sic) nombre del modelo (p.ej. 737-800)
+  `familia`                VARCHAR(60) NULL,       -- p.ej. 737, A320, E-Jet
 
-  -- ===============================================================================================
-  -- 2) ATRIBUTOS PRINCIPALES DEL MODELO
-  -- ===============================================================================================
-  `fabricante` VARCHAR(80) NOT NULL,                -- Fabricante (ej.: Airbus, Boeing, Embraer)
-  `mdoelo`     VARCHAR(80) NOT NULL,                -- (Tal cual en tu DDL) Nombre de modelo (ej.: A320-200)
-  `familia`    VARCHAR(60) NULL,                    -- Familia/serie (ej.: A320 family, 737NG)
-  `alcance_km` INT NULL,                            -- Alcance típico en kilómetros
-  `velocidad_crucero_kmh` INT NULL,                 -- Velocidad de crucero en km/h
-  `capacidad_asiento` INT NULL,                     -- Capacidad típica de asientos (referencial)
-  `capacidad_bodega_kg` INT NOT NULL,               -- Capacidad de bodega/carga en kg (referencial)
-  `activo` TINYINT NOT NULL,                        -- 1=activo en catálogo, 0=inactivo
+  -- Especificaciones
+  `alcance_km`             INT NULL,               -- alcance aproximado en km
+  `velocidad_crucero_kmh`  INT NULL,               -- velocidad de crucero en km/h
+  `capacidad_asiento`      INT NULL,               -- cantidad de asientos totales
+  `capacidad_bodega_kg`    INT NOT NULL,           -- capacidad de bodega en kg
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`      DATETIME NULL,                   -- Cuándo se creó el registro
-  `actualizado_en` DATETIME NULL,                   -- Última actualización
-  `eliminado_en`   DATETIME NULL,                   -- Marca de borrado lógico (si aplica)
+  -- Estado
+  `activo`                 TINYINT NOT NULL,       -- 0 = inactivo, 1 = activo
 
-  `creado_por`     INT NOT NULL,                    -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT NOT NULL,                   -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por`  INT NULL,                        -- FK → usuario.idusuario (quién “elimina” lógicamente)
-  `eliminado_motivo` VARCHAR(200) NULL,             -- Motivo del borrado lógico (si existe)
+  -- Auditoría temporal
+  `creado_en`              DATETIME NULL,
+  `actualizado_en`         DATETIME NULL,
+  `eliminado_en`           DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 4) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Auditoría de usuarios
+  `creado_por`             INT NULL,
+  `actualizado_por`        INT NULL,
+  `eliminado_por`          INT NULL,
+  `eliminado_motivo`       VARCHAR(200) NULL,
+
+  -- Clave primaria
   PRIMARY KEY (`idmodelo_aeronave`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas (auditoría)
+  -- ────────────────
   CONSTRAINT `fk_modelo_aeronave_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_modelo_aeronave_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_modelo_aeronave_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
--- =================================================================================================
---  NOTAS DE USO
---  • “mdoelo” se mantiene exactamente como en tu definición original.
---  • Usá esta tabla para normalizar datos técnicos y luego referenciarlos desde “aeronave”.
---  • “configuracion_cabina” define plantillas por cabina basadas en cada modelo de esta tabla.
--- =================================================================================================
+-- (Opcionales recomendados)
+-- • Búsquedas por fabricante/modelo:
+--   CREATE INDEX `ix_modelo_aeronave_fabricante` ON `modelo_aeronave` (`fabricante`);
+--   CREATE INDEX `ix_modelo_aeronave_mdoelo` ON `modelo_aeronave` (`mdoelo`);
+-- • Evitar duplicados por fabricante+modelo:
+--   -- CREATE UNIQUE INDEX `ux_modelo_fabricante_modelo`
+--   --   ON `modelo_aeronave` (`fabricante`, `mdoelo`);
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: MODELO_AERONAVE
+-- ═══════════════════════════════════════════════════════════════════════════════

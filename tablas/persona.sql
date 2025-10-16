@@ -1,78 +1,67 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: PERSONA
---  Rol: núcleo de identidad para usuarios, clientes, pasajeros, empleados, etc.
---       Centraliza nombre y metadatos de auditoría. Otras tablas (usuario, direccion, telefono,
---       documentacion, reservas futuras) referencian a persona para mantener consistencia.
---  Relacionada con:
---    - usuario (FKs de auditoría): quién creó/actualizó/eliminó lógicamente el registro.
---    - (indirecto) usuario: una persona puede estar asociada a un usuario del sistema.
--- =================================================================================================
+--  Detalle de identidad básica para individuos (pasajeros, empleados, etc.).
+--  Dependencias:
+--    • Auditoría: referencias a usuario.idusuario (quién creó/actualizó/eliminó).
+--  Notas:
+--    • Las FKs de auditoría usan ON DELETE SET NULL: si el usuario auditor se borra,
+--      no se pierde el registro de persona; solo se “desasocia” el autor.
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`persona`;
+-- ───────────────────────────────────────────────────────────────────────────────
+-- Limpieza (solo para desarrollo)
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `persona`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`persona` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `persona` (
+  -- Identificador único
+  `idpersona`         INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idpersona` INT NOT NULL AUTO_INCREMENT,     -- PK interna de la persona
+  -- Identidad
+  `nombre`            VARCHAR(80) NOT NULL,
+  `apellido`          VARCHAR(80) NOT NULL,
 
-  -- ===============================================================================================
-  -- 2) ATRIBUTOS PRINCIPALES
-  -- ===============================================================================================
-  `nombre`        VARCHAR(80) NOT NULL,        -- Nombres
-  `apellido`      VARCHAR(80) NOT NULL,        -- Apellidos
+  -- Auditoría temporal
+  `creado_en`         DATETIME NOT NULL,
+  `actualizado_en`    DATETIME NULL,
+  `eliminado_en`      DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`     DATETIME    NOT NULL,        -- Cuándo se creó el registro
-  `actualizado_en` DATETIME   NULL,            -- Última actualización
-  `eliminado_en`  DATETIME    NULL,            -- Marca de borrado lógico (si aplica)
+  -- Auditoría de usuarios (autores de acciones)
+  `creado_por`        INT NULL,
+  `actualizado_por`   INT NULL,
+  `eliminado_por`     INT NULL,
 
-  `creado_por`    INT         NOT NULL,        -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT       NOT NULL,        -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por` INT         NULL,            -- FK → usuario.idusuario (quién “elimina” lógicamente)
-
-  -- ===============================================================================================
-  -- 4) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Clave primaria
   PRIMARY KEY (`idpersona`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- (Nota: se mantiene tu ON DELETE SET NULL tal cual. Si se borrara un usuario de auditoría,
-  --        estos campos se pondrán en NULL; recuerda que aquí `creado_por` y `actualizado_por`
-  --        son NOT NULL, lo que en producción suele requerir ON DELETE NO ACTION o permitir NULL.)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas (auditoría)
+  -- ────────────────
   CONSTRAINT `fk_persona_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE SET NULL ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE SET NULL
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_persona_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE SET NULL ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE SET NULL
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_persona_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE SET NULL ON UPDATE NO ACTION
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE SET NULL
+    ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
--- =================================================================================================
---  NOTAS DE USO
---  • Es la entidad base para datos personales; expande con direccion, telefono y documentacion.
---  • Conviene indexar por nombre/apellido si vas a buscar mucho por texto (lo podés agregar luego).
---  • Revisa la política de auditoría: si querés conservar NOT NULL, cambiá ON DELETE a NO ACTION.
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: PERSONA
+-- ═══════════════════════════════════════════════════════════════════════════════

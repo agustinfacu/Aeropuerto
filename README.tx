@@ -1,182 +1,130 @@
-# README — Base de Datos **mydb** (Aerolínea)
+# ✈️ Base de Datos - Sistema de Gestión de Vuelos
 
-> Base orientada a operación de aerolínea: identidad & accesos, datos personales, geografía de aeropuertos, flota, rutas, programación y operación de vuelos, y tarifas por cabina.
-
----
-
-## ░░ 1) ESTRUCTURA GENERAL (MÓDULOS) ░░
-> Mapa mental por áreas con tablas clave.
-
-### 🔐 Identidad & Accesos
-- **persona**: entidad base para individuos (pasajeros, empleados, etc.).
-- **usuario**: cuenta de acceso asociada a una *persona* y a un *rol*.
-- **rol**, **permiso**, **rol_permiso**: control de acceso basado en roles y permisos (RBAC).
+> **Proyecto:** Aerolínea - Sistema de Reservas y Operaciones  
+> **Tecnología:** MySQL 8.x  
+> **Autor:** Agustín Tejero  
+> **Esquema principal:** `mydb`  
+> **Modo de desarrollo:** Modelo Entidad–Relación normalizado (3FN), con control de auditoría y referencias cruzadas.
 
 ---
 
-### 👤 Datos personales
-- **direccion**, **telefono**, **documentacion**: info de contacto y documentos de la *persona*.
+## 📘 Resumen General
+
+Este modelo de base de datos implementa la estructura fundamental de un **sistema de gestión de vuelos comerciales**, permitiendo administrar:
+
+- Identidad y autenticación de usuarios.  
+- Roles y permisos.  
+- Datos personales, documentación y contacto de pasajeros.  
+- Infraestructura aeroportuaria (países, aeropuertos, terminales, puertas).  
+- Flota de aeronaves y sus modelos.  
+- Rutas, tarifas, promociones y vuelos.  
+- Reservas, boletos y control de asientos por vuelo.  
+
+Cada tabla mantiene **auditoría completa** (`creado_por`, `actualizado_por`, `eliminado_por`, `*_en`) para trazabilidad, además de **control de eliminación lógica** mediante `eliminado_en`.
 
 ---
 
-### 🌍 Geografía & Aeropuertos
-- **pais**: catálogo de países.  
-- **aeropuerto**: aeropuertos por país.  
-- **terminal**: terminales por aeropuerto.  
-- **puerta**: puertas dentro de una terminal.
+## 🗂️ Listado de Tablas Principales
+
+| **Módulo**                   | **Tabla**                | **Descripción breve** |
+|------------------------------|---------------------------|------------------------|
+| **Seguridad y Accesos**      | `usuario`                | Cuentas del sistema (email, hash, bloqueo, verificación). |
+|                              | `rol`                    | Roles base (Administrador, Piloto, Pasajero, etc.). |
+|                              | `permiso`                | Acciones permitidas en el sistema. |
+|                              | `rol_permiso`            | Asignación de permisos a roles. |
+| **Identidad Personal**       | `persona`                | Datos básicos (nombre, apellido). |
+|                              | `direccion`              | Domicilios vinculados a personas. |
+|                              | `telefono`               | Teléfonos personales o laborales. |
+|                              | `documentacion`          | Documentos de identidad (DNI, pasaporte, etc.). |
+| **Geografía y Aeropuertos**  | `pais`                   | Catálogo ISO de países. |
+|                              | `aeropuerto`             | Aeropuertos y coordenadas. |
+|                              | `terminal`               | Terminales dentro de un aeropuerto. |
+|                              | `puerta`                 | Puertas de embarque. |
+| **Flota y Configuración**    | `modelo_aeronave`        | Modelos técnicos de aeronaves. |
+|                              | `configuracion_cabina`   | Plantillas de disposición de asientos por clase. |
+|                              | `aeronave`               | Aeronaves registradas y su estado operativo. |
+|                              | `asiento`                | Asientos físicos dentro de una aeronave. |
+| **Operación y Tarifas**      | `ruta`                   | Tramos origen–destino. |
+|                              | `tarifa`                 | Tarifas por clase y vigencia. |
+|                              | `promocion`              | Descuentos o condiciones especiales sobre tarifas. |
+| **Operaciones de Vuelo**     | `vuelo`                  | Programación de vuelos con aeronave y ruta. |
+|                              | `asiento_vuelo`          | Estado (libre/reservado/etc.) de asientos por vuelo. |
+| **Reservas y Ventas**        | `reserva`                | Encabezado de reservas, totales y estado. |
+|                              | `reserva_persona`        | Pasajeros dentro de una reserva. |
+|                              | `boleto`                 | Boleto emitido por pasajero y vuelo. |
+
 
 ---
 
-### ✈️ Flota & Configuración
-- **modelo_aeronave**: catálogo técnico (fabricante, capacidades).  
-- **configuracion_cabina**: plantilla por modelo (filas y asientos por fila).  
-- **aeronave**: aeronaves físicas (matrícula) asociadas a *modelo_aeronave*.  
-- **asiento**: plano físico de asientos por *aeronave*.
+## 🔄 Caso de Uso Típico
+
+### 🧩 Flujo completo de una operación
+
+1. **Autenticación**  
+   Un `usuario` inicia sesión según su `rol` (pasajero, agente, admin).
+
+2. **Gestión de datos personales**  
+   El usuario vincula su `persona`, `direccion`, `telefono` y `documentacion`.
+
+3. **Búsqueda de vuelos**  
+   El cliente consulta rutas (`ruta`) disponibles y vuelos (`vuelo`) activos.
+
+4. **Selección de vuelo y clase**  
+   Se visualizan tarifas (`tarifa`) y posibles promociones (`promocion`).
+
+5. **Reserva de asiento**  
+   Se crea una `reserva` asociando el `usuario`, la `tarifa` y la `promocion`.  
+   Cada pasajero se guarda en `reserva_persona` con su `documentacion`.
+
+6. **Asignación de asiento**  
+   Se consulta `asiento_vuelo` para marcar el asiento como `RESERVADO`.
+
+7. **Emisión de boleto**  
+   Se genera un registro en `boleto` con estado `EMITIDO`, vinculando vuelo, pasajero y asiento.
+
+8. **Auditoría**  
+   Todas las operaciones registran `creado_por`, `actualizado_por` y timestamps (`*_en`).
 
 ---
 
-### 🗺️ Red de Rutas & Operación
-- **ruta**: tramos origen→destino (aeropuerto↔aeropuerto).  
-- **vuelo_programado**: patrón (código, frecuencia, horas) sobre una *ruta*.  
-- **vuelo**: instancia operativa (por fecha), con puerta de salida/llegada y aeronave asignada.
+## ⚙️ Detalles Técnicos
+
+### 🔑 Claves y relaciones
+
+- Todas las tablas poseen `PRIMARY KEY` autoincremental (`INT AUTO_INCREMENT`).  
+- Las relaciones se implementan mediante `FOREIGN KEY` con `ON DELETE NO ACTION` (salvo en `persona` y `direccion`, que usan `SET NULL` para preservar registros históricos).  
+- Índices únicos en:
+  - `usuario.email_norm`
+  - `pais.tag`
+  - `aeropuerto.tag`
+  - `aeronave.matricula`
+  - `tarifa.nombre`
+  - `reserva.codigo_reserva`
+
+### 📅 Control temporal
+
+Cada registro incorpora:
+- `creado_en`, `actualizado_en`, `eliminado_en`
+- Campos complementarios de autoría (`creado_por`, etc.)
+  
+Esto permite reconstruir la historia completa de modificaciones sin perder trazabilidad.
 
 ---
 
-### 💵 Comercial & Precios
-- **tarifa**: precio base por *ruta* y *clase* (cabina), con vigencia y cargos/impuestos simples.
+## 🧮 Ejemplo de consulta típica
 
----
-
-## ░░ 2) ORDEN SUGERIDO DE EJECUCIÓN ░░
-> Ejecuta los `.sql` en este orden para crear el esquema completo.
-
-Esquema: 00_schema.sql
-Catálogos base: pais.sql
-Identidad & Accesos: persona.sql, rol.sql, permiso.sql, rol_permiso.sql, usuario.sql
-Geografía: aeropuerto.sql, terminal.sql, puerta.sql
-Flota: modelo_aeronave.sql, configuracion_cabina.sql, aeronave.sql, asiento.sql
-Red & Operación: ruta.sql, vuelo_programado.sql, vuelo.sql
-Comercial: tarifa.sql
-Finalización: 99_finalize.sql
-
-> Cada archivo ya incluye `USE mydb;` y `DROP TABLE IF EXISTS ...` para facilitar iteraciones.
-
----
-
-## ░░ 3) RELACIONES CLAVE (VISIÓN RÁPIDA) ░░
-
-- **usuario** → **persona**, **rol**  
-- **rol_permiso**: many-to-many entre **rol** y **permiso**  
-- **aeropuerto** → **pais** → **usuario** *(auditoría)*  
-- **terminal** → **aeropuerto** → **puerta**  
-- **aeronave** → **modelo_aeronave**  
-- **asiento** → **aeronave**  
-- **configuracion_cabina** → **modelo_aeronave**  
-- **ruta** → **aeropuerto** *(origen/destino)*  
-- **vuelo_programado** → **ruta**  
-- **vuelo** → **vuelo_programado**, **aeronave**, **puerta** *(salida/llegada)*  
-- **tarifa** → **ruta**
-
----
-
-## ░░ 4) CASOS DE USO TÍPICOS ░░
-
-### A) Agregar un **nuevo avión** (aeronave)
-1. *(Opcional)* Crear/validar **modelo_aeronave** (p. ej., “A320”).
-2. Insertar en **aeronave**: matrícula, fecha de alta, estado, `modelo_aeronave_id`.
-3. Generar plano en **asiento**:
-   - Basado en **configuracion_cabina** del modelo.
-   - Insertar por cabina: `cabina`, `fila`, `columna`, `codigo_asiento`, flags *(bulkhead/salida)*.  
-**Resultado:** la aeronave puede asignarse a un **vuelo** operativo.
-
----
-
-### B) Crear un **nuevo usuario**
-1. Crear **persona** *(nombre, apellido)*.  
-2. Crear **usuario**: `email`, `password_hash`, `passwrod_algo` *(sic)*, verificación; asociar `rol_idrol` + `persona_idpersona`.  
-3. *(Opcional)* Asignar permisos al rol vía **rol_permiso**.  
-**Resultado:** el usuario puede autenticarse y operar según su rol.
-
----
-
-### C) Definir una **nueva ruta** y **programar vuelos**
-1. **ruta**: `origen_aeropuerto`, `destino_aeropuerto`, distancia/tiempo estimado.  
-2. **vuelo_programado**: `codigo_vuelo`, `frecuencia` (p. ej., “L-M-X-J-V”), `hora_salida`/`hora_llegada`, `ruta_idruta`.  
-3. *(Opcional)* **tarifa** por *ruta* y *clase* *(economica/ejecutivo/primera)*.  
-**Resultado:** patrones listos para generar/operar instancias diarias.
-
----
-
-### D) Operar un **nuevo vuelo** en una fecha concreta
-1. **vuelo**:
-   - `vuelo_programado_idvuelo_programado`, `fecha_operacion`  
-   - `aeronave_idaeronave`  
-   - `puerta_salida_idpuerta` *(y `puerta_llegada_idpuerta` si aplica)*  
-2. Actualizar tiempos (`std/sta`, luego `etd/eta`, `atd/ata`) y `estado`.  
-**Resultado:** vuelo publicado/operativo con infraestructura y equipo.
-
----
-
-### E) **Nueva reserva** *(estado actual del esquema)*
-> Aún no hay tablas de reservas/boletos/segmentos. Propuesta mínima para futuro:
-
-- **reserva** *(PNR)*: id, localizador, `persona_contacto_id`, estado, `creado_en`, etc.  
-- **reserva_item** / **segmento_reserva**: vincula *reserva* ↔ *vuelo* (uno por tramo):
-  - `pasajero_idpersona`, `clase` (enum), `tarifa_id` *(opcional)*,  
-  - `asiento_id` *(nullable hasta seat map)*, `estado` *(reservado/emitido/cancelado)*.  
-- **pago** *(simple)*: `reserva_id`, monto, moneda, método, estado, timestamps.
-
-> Con esto: crear reserva, cotizar con **tarifa** según *ruta/clase*, emitir pago y **asignar asiento** por segmento.
-
----
-
-### F) **Asignar un pasajero a un vuelo** *(estado actual del esquema)*
-> No hay tabla de cruce *persona↔vuelo*. Propuesta mínima:
-
-- **pasajero_vuelo**:  
-  - `vuelo_id` *(FK)*, `persona_id` *(FK)*  
-  - `asiento_id` *(FK a **asiento**, opcional hasta la asignación)*  
-  - `clase`, `estado_embarque` *(check-in, embarcado)*, timestamps.  
-
-Hasta agregar estas tablas, la asignación no queda persistida.
-
----
-
-## ░░ 5) ESTÁNDARES, AUDITORÍA Y BORRADO LÓGICO ░░
-- Auditoría en la mayoría de tablas: `creado_en`, `actualizado_en`, `eliminado_en` + `*_por` *(FK a **usuario**)*.  
-- Se favorece **borrado lógico** (`eliminado_en` + motivo) para preservar historia.  
-- Booleanos como `TINYINT` *(0/1)*.
-
----
-
-## ░░ 6) NOTAS Y LIMITACIONES CONOCIDAS ░░
-
-**Typos conservados** *(para no romper DDL actual)*:
-- `mdoelo` en **modelo_aeronave**  
-- `timepo_estimado` en **ruta**  
-- `es_whatssap` en **telefono**  
-- `passwrod_algo` en **usuario**
-
-**Índices a revisar**:
-- **asiento**: `UNIQUE` independientes en `cabina`, `fila`, `columna`. Suele convenir  
-  `UNIQUE (aeronave_idaeronave, cabina, fila, columna)`.
-- **ruta**: `UNIQUE (origen_aeropuerto)`; en producción se usa típicamente  
-  `UNIQUE (origen_aeropuerto, destino_aeropuerto)`.
-
-**FK inválida**:
-- En **rol_permiso**: `fk_rol_permiso_eliminado_por` sin columnas (debería apuntar a `usuario(idusuario)`).
-
-**Reservas no modeladas**:
-- Falta PNR/boletos/pagos/segmentos/asignación de asiento por pasajero (ver propuestas en §4E–4F).
-
----
-
-## ✅ Checklist de próximos pasos
-- [ ] Agregar módulo de **reservas** *(PNR, segmentos, pagos, pasajero_vuelo)*.  
-- [ ] Ajustar **índices únicos** en `asiento` y `ruta`.  
-- [ ] Corregir FK en `rol_permiso`.  
-- [ ] Considerar `utf8mb4` y defaults de timestamps donde aplique.
-
----
-
-> **Listo:** Con esto tenés una guía clara para navegar el esquema, ejecutarlo por módulos y operar los flujos más comunes (alta de flota, programación/operación de vuelos, usuarios y tarifas).
+```sql
+-- Consultar vuelos activos con su ruta y aeronave
+SELECT 
+    v.idvuelo,
+    v.codigo_publico,
+    a.nombre AS aeropuerto_salida,
+    r.distancia_km,
+    ma.fabricante,
+    ma.mdoelo AS modelo
+FROM vuelo v
+JOIN ruta r ON v.ruta_idruta = r.idruta
+JOIN aeropuerto a ON v.aeropuerto_idaeropuerto = a.idaeropuerto
+JOIN aeronave ae ON v.aeronave_idaeronave = ae.idaeronave
+JOIN modelo_aeronave ma ON ae.modelo_aeronave_idmodelo_aeronave = ma.idmodelo_aeronave
+WHERE v.estado IN ('PROGRAMADO', 'ABORDANDO');

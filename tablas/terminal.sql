@@ -1,90 +1,85 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: TERMINAL
---  Rol: catálogo de terminales dentro de un AEROPUERTO.
---       Sirve como contenedor de puertas (tabla PUERTA) y como referencia para operaciones.
---  Relacionada con:
---    - aeropuerto (FK): a qué aeropuerto pertenece la terminal.
---    - usuario    (FKs de auditoría): quién creó/actualizó/borró lógicamente el registro.
---    - (indirecto) puerta: cada puerta referencia a su terminal.
--- =================================================================================================
+--  Terminales dentro de un aeropuerto (T1, T2, etc.).
+--  Campos clave:
+--    • nombre: identificador legible de la terminal.
+--    • activo: habilita/deshabilita sin borrar físicamente.
+--  Dependencias:
+--    • aeropuerto(idaeropuerto) → a qué aeropuerto pertenece la terminal.
+--    • usuario(idusuario) → auditoría (creado/actualizado/eliminado_por).
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`terminal`;
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `terminal`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`terminal` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `terminal` (
+  -- Identificador único
+  `idterminal`             INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idterminal` INT NOT NULL AUTO_INCREMENT,     -- PK interna de la terminal
+  -- Identidad / estado
+  `nombre`                 VARCHAR(60) NOT NULL,
+  `activo`                 TINYINT NOT NULL,      -- 0 = inactiva, 1 = activa
 
-  -- ===============================================================================================
-  -- 2) ATRIBUTOS PRINCIPALES
-  -- ===============================================================================================
-  `nombre` VARCHAR(60) NOT NULL,                -- Nombre visible (ej.: Terminal A, T1)
-  `activo` TINYINT NOT NULL,                    -- 1=activa en operación, 0=fuera de servicio
+  -- Auditoría temporal
+  `creado_en`              DATETIME NULL,
+  `actualizado_en`         DATETIME NULL,
+  `eliminado_en`           DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`      DATETIME NULL,               -- Cuándo se creó
-  `actualizado_en` DATETIME NULL,               -- Última actualización
-  `eliminado_en`   DATETIME NULL,               -- Marca de borrado lógico (si aplica)
+  -- Auditoría de usuarios
+  `creado_por`             INT NULL,
+  `actualizado_por`        INT NULL,
+  `eliminado_por`          INT NULL,
+  `eliminado_motivo`       VARCHAR(200) NULL,
 
-  `creado_por`      INT NOT NULL,               -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT NOT NULL,               -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por`   INT NULL,                   -- FK → usuario.idusuario (quién “elimina” lógicamente)
-  `eliminado_motivo` VARCHAR(200) NULL,         -- Motivo del borrado lógico (si existe)
+  -- Relación fuerte
+  `aeropuerto_idaeropuerto` INT NOT NULL,
 
-  -- ===============================================================================================
-  -- 4) RELACIÓN CON AEROPUERTO
-  -- ===============================================================================================
-  `aeropuerto_idaeropuerto` INT NOT NULL,       -- FK → aeropuerto.idaeropuerto (pertenencia)
-
-  -- ===============================================================================================
-  -- 5) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Clave primaria
   PRIMARY KEY (`idterminal`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas
+  -- ────────────────
   CONSTRAINT `fk_terminal_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  -- Nota: el nombre de esta constraint viene con un typo "temrinal" en tu DDL original (se respeta).
   CONSTRAINT `fk_temrinal_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_terminal_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FK con AEROPUERTO → aeropuerto(idaeropuerto)
-  -- ------------------------------------------------------------------------------------------------
   CONSTRAINT `fk_terminal_aeropuerto1`
     FOREIGN KEY (`aeropuerto_idaeropuerto`)
-    REFERENCES `mydb`.`aeropuerto` (`idaeropuerto`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION
+    REFERENCES `aeropuerto` (`idaeropuerto`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
--- =================================================================================================
---  NOTAS DE USO
---  • Considerá un índice UNIQUE (aeropuerto_idaeropuerto, nombre) si necesitás evitar duplicados
---    de nombre de terminal dentro del mismo aeropuerto.
---  • El flag `activo` permite deshabilitar terminales temporalmente sin perder historial.
--- =================================================================================================
+-- (Opcionales recomendados)
+-- • Búsquedas por aeropuerto:
+--   CREATE INDEX `ix_terminal_aeropuerto` ON `terminal` (`aeropuerto_idaeropuerto`);
+-- • Evitar nombres duplicados por aeropuerto:
+--   -- CREATE UNIQUE INDEX `ux_terminal_nombre_aeropuerto`
+--   --   ON `terminal` (`aeropuerto_idaeropuerto`, `nombre`);
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: TERMINAL
+-- ═══════════════════════════════════════════════════════════════════════════════

@@ -1,111 +1,134 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: VUELO
---  Rol: instancia OPERATIVA de un vuelo para un día concreto (fecha_operacion).
---       Guarda horarios planificados/estimados/reales, estado e infraestructura asignada.
---  Relacionada con:
---    - vuelo_programado (FK): patrón base del que nace esta instancia.
---    - aeronave         (FK): avión asignado a operar el vuelo.
---    - puerta           (FK): puerta de salida y (opcional) de llegada.
--- =================================================================================================
+--  Programa y operación de vuelos (horarios programados/real, estado y recursos).
+--  Campos clave:
+--    • codigo_publico: identificador visible (ej.: AR1234).
+--    • fechas prog/real: salida/llegada programadas y efectivas.
+--    • estado: ciclo operativo (PROGRAMADO, ABORDANDO, EN_AIRE, ATERRIZADO, CANCELADO, DEMORADO).
+--  Dependencias:
+--    • puerta(idpuerta), terminal(idterminal), aeropuerto(idaeropuerto)
+--    • ruta(idruta), aeronave(idaeronave)
+--    • usuario(idusuario) para auditoría (creado/actualizado/eliminado_por)
+--  Notas:
+--    • Podés agregar CHECKs (MySQL 8.0+) para validar fecha_salida ≤ fecha_llegada.
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`vuelo`;
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `vuelo`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`vuelo` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `vuelo` (
+  -- Identificador único
+  `idvuelo`               INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idvuelo` INT NOT NULL AUTO_INCREMENT,              -- PK interna de la instancia de vuelo
+  -- Identidad pública y planificación
+  `codigo_publico`        VARCHAR(10) NOT NULL,   -- ej.: AR1234
+  `fecha_salida_prog`     DATETIME NOT NULL,
+  `fecha_llegada_prog`    DATETIME NOT NULL,
 
-  -- ===============================================================================================
-  -- 2) FECHA DE OPERACIÓN
-  -- ===============================================================================================
-  `fecha_operacion` DATE NOT NULL,                    -- Fecha calendario local del origen (día del vuelo)
+  -- Tiempos reales de operación
+  `fecha_salida_real`     DATETIME NULL,
+  `fecha_llegada_real`    DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 3) TIEMPOS (Programado / Estimado / Real)
-  --     Convenciones:
-  --       - STD: Scheduled Time of Departure   (salida programada)
-  --       - STA: Scheduled Time of Arrival     (llegada programada)
-  --       - ETD: Estimated Time of Departure   (salida estimada)
-  --       - ETA: Estimated Time of Arrival     (llegada estimada)
-  --       - ATD: Actual Time of Departure      (salida real, off-block)
-  --       - ATA: Actual Time of Arrival        (llegada real, on-block)
-  -- ===============================================================================================
-  `std` DATETIME NULL,                                 -- Salida programada
-  `sta` DATETIME NULL,                                 -- Llegada programada
-  `etd` DATETIME NULL,                                 -- Salida estimada
-  `eta` DATETIME NULL,                                 -- Llegada estimada
-  `atd` DATETIME NULL,                                 -- Salida real
-  `ata` DATETIME NULL,                                 -- Llegada real
+  -- Estado operativo
+  `estado` ENUM('PROGRAMADO','ABORDANDO','EN_AIRE','ATERRIZADO','CANCELADO','DEMORADO') NOT NULL,
 
-  -- ===============================================================================================
-  -- 4) ESTADO OPERATIVO
-  -- ===============================================================================================
-  `estado` ENUM('programado','embarque','en_ruta','aterrizado','cancelado','desviado') NOT NULL,
-                                                     -- Estado actual del vuelo
-  `irregularidad_motivo` VARCHAR(200) NULL,          -- Motivo si hay cancelación/desvío/demora
+  -- Auditoría temporal
+  `creado_en`             DATETIME NULL,
+  `actualizado_en`        DATETIME NULL,
+  `eliminado_en`          DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 5) INFRAESTRUCTURA ASIGNADA Y EQUIPO
-  -- ===============================================================================================
-  `puerta_salida_idpuerta` INT NOT NULL,             -- FK → puerta.idpuerta (puerta de embarque)
-  `puerta_llegada_idpuerta` INT NULL,                -- FK → puerta.idpuerta (puerta de arribo, si se conoce)
-  `aeronave_idaeronave` INT NOT NULL,                -- FK → aeronave.idaeronave (avión asignado)
-  `vuelo_programado_idvuelo_programado` INT NOT NULL,-- FK → vuelo_programado.idvuelo_programado (patrón)
+  -- Auditoría de usuarios
+  `creado_por`            INT NULL,
+  `actualizado_por`       INT NULL,
+  `eliminado_por`         INT NULL,
+  `eliminado_motivo`      VARCHAR(200) NULL,
 
-  -- ===============================================================================================
-  -- 6) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Relaciones fuertes con infraestructura y operación
+  `puerta_idpuerta`       INT NOT NULL,
+  `terminal_idterminal`   INT NOT NULL,
+  `aeropuerto_idaeropuerto` INT NOT NULL,   -- aeropuerto base de operación (p.ej. salida)
+  `ruta_idruta`           INT NOT NULL,     -- ruta origen→destino
+  `aeronave_idaeronave`   INT NOT NULL,     -- aeronave asignada
+
+  -- Clave primaria
   PRIMARY KEY (`idvuelo`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs con PUERTA → puerta(idpuerta)
-  -- ------------------------------------------------------------------------------------------------
-  CONSTRAINT `fk_vuelo_puerta_llegada`
-    FOREIGN KEY (`puerta_llegada_idpuerta`)
-    REFERENCES `mydb`.`puerta` (`idpuerta`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+  -- ────────────────
+  -- Claves foráneas
+  -- ────────────────
+  CONSTRAINT `fk_vuelo_puerta1`
+    FOREIGN KEY (`puerta_idpuerta`)
+    REFERENCES `puerta` (`idpuerta`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_vuelo_puerta_salida`
-    FOREIGN KEY (`puerta_salida_idpuerta`)
-    REFERENCES `mydb`.`puerta` (`idpuerta`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_terminal1`
+    FOREIGN KEY (`terminal_idterminal`)
+    REFERENCES `terminal` (`idterminal`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FK con AERONAVE → aeronave(idaeronave)
-  -- ------------------------------------------------------------------------------------------------
+  CONSTRAINT `fk_vuelo_aeropuerto1`
+    FOREIGN KEY (`aeropuerto_idaeropuerto`)
+    REFERENCES `aeropuerto` (`idaeropuerto`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+
+  CONSTRAINT `fk_vuelo_ruta1`
+    FOREIGN KEY (`ruta_idruta`)
+    REFERENCES `ruta` (`idruta`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+
   CONSTRAINT `fk_vuelo_aeronave1`
     FOREIGN KEY (`aeronave_idaeronave`)
-    REFERENCES `mydb`.`aeronave` (`idaeronave`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `aeronave` (`idaeronave`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FK con VUELO_PROGRAMADO → vuelo_programado(idvuelo_programado)
-  -- ------------------------------------------------------------------------------------------------
-  CONSTRAINT `fk_vuelo_vuelo_programado1`
-    FOREIGN KEY (`vuelo_programado_idvuelo_programado`)
-    REFERENCES `mydb`.`vuelo_programado` (`idvuelo_programado`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION
+  -- Auditoría (autorreferencias)
+  CONSTRAINT `fk_vuelo_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+
+  CONSTRAINT `fk_vuelo_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+
+  CONSTRAINT `fk_vuelo_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+
+  -- (Opcionales con MySQL 8.0+)
+  -- ,CONSTRAINT `ck_vuelo_prog` CHECK (`fecha_salida_prog` <= `fecha_llegada_prog`)
+  -- ,CONSTRAINT `ck_vuelo_real` CHECK (
+  --     `fecha_salida_real` IS NULL OR `fecha_llegada_real` IS NULL
+  --     OR `fecha_salida_real` <= `fecha_llegada_real`
+  -- )
 )
 ENGINE = InnoDB;
 
--- =================================================================================================
---  NOTAS DE USO
---  • Consultas típicas:
---      - “salidas hoy”: WHERE fecha_operacion=CURRENT_DATE AND estado IN ('programado','embarque','en_ruta')
---      - puntualidad: usar diferencias entre STD/ATD y STA/ATA.
---  • Si necesitás evitar duplicados por (vuelo_programado_id, fecha_operacion), podés agregar:
---      -- CREATE UNIQUE INDEX ux_vuelo_programado_fecha
---      --   ON mydb.vuelo (vuelo_programado_idvuelo_programado, fecha_operacion);
---  • Las horas suelen ser locales del aeropuerto; si usás UTC en la app, documentá la conversión.
--- =================================================================================================
-s
+-- (Opcionales recomendados)
+-- • Búsquedas por fechas/estado:
+--   CREATE INDEX `ix_vuelo_salida_prog`  ON `vuelo` (`fecha_salida_prog`);
+--   CREATE INDEX `ix_vuelo_estado`       ON `vuelo` (`estado`);
+-- • Búsquedas por recursos:
+--   CREATE INDEX `ix_vuelo_aeronave`     ON `vuelo` (`aeronave_idaeronave`);
+--   CREATE INDEX `ix_vuelo_ruta`         ON `vuelo` (`ruta_idruta`);
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: VUELO
+-- ═══════════════════════════════════════════════════════════════════════════════

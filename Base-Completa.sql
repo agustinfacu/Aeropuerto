@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`rol` (
   `creado_en` DATETIME NOT NULL,
   `actualizado_en` DATETIME NOT NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   PRIMARY KEY (`idrol`),
@@ -49,8 +49,6 @@ CREATE TABLE IF NOT EXISTS `mydb`.`rol` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `nombre_UNIQUE` ON `mydb`.`rol` (`nombre` ASC) VISIBLE;
-
 
 -- -----------------------------------------------------
 -- Table `mydb`.`usuario`
@@ -60,9 +58,9 @@ DROP TABLE IF EXISTS `mydb`.`usuario` ;
 CREATE TABLE IF NOT EXISTS `mydb`.`usuario` (
   `idusuario` INT NOT NULL AUTO_INCREMENT,
   `email` VARCHAR(254) NOT NULL,
-  `email_norm` VARCHAR(254) NULL,
+  `email_norm` VARCHAR(254) NOT NULL,
   `password_hash` VARBINARY(255) NOT NULL,
-  `passwrod_algo` ENUM('argon2id', 'bcrypt') NOT NULL,
+  `password_algoritmo` ENUM('argon2id', 'bcrypt') NOT NULL,
   `password_actualizado_en` DATETIME NOT NULL,
   `verificacion_email` TINYINT NOT NULL,
   `verificacion_token_hash` VARBINARY(32) NULL,
@@ -110,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `mydb`.`usuario` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `email_norm_UNIQUE` ON `mydb`.`usuario` (`email_norm` ASC) VISIBLE;
+CREATE UNIQUE INDEX `email_norm_UNIQUE` ON `mydb`.`usuario` (`email_norm` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -125,8 +123,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`persona` (
   `creado_en` DATETIME NOT NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   PRIMARY KEY (`idpersona`),
   CONSTRAINT `fk_persona_creado_por`
@@ -159,8 +157,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`permiso` (
   `creado_en` DATETIME NOT NULL,
   `actualizado_en` DATETIME NOT NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   PRIMARY KEY (`idpermiso`),
@@ -181,7 +179,7 @@ CREATE TABLE IF NOT EXISTS `mydb`.`permiso` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `codigo_UNIQUE` ON `mydb`.`permiso` (`codigo` ASC) VISIBLE;
+CREATE UNIQUE INDEX `codigo_UNIQUE` ON `mydb`.`permiso` (`codigo` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -194,8 +192,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`rol_permiso` (
   `creado_en` DATETIME NOT NULL,
   `actualizado_en` DATETIME NOT NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   `permiso_idpermiso` INT NOT NULL,
@@ -222,8 +220,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`rol_permiso` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_rol_permiso_eliminado_por`
-    FOREIGN KEY ()
-    REFERENCES `mydb`.`persona` ()
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -246,8 +244,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`documentacion` (
   `observacion` TEXT NULL,
   `creado_en` DATETIME NOT NULL,
   `actualizado_en` DATETIME NOT NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_en` DATETIME NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
@@ -297,8 +295,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`direccion` (
   `creado_en` DATETIME NOT NULL,
   `actualizado_en` DATETIME NOT NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   `persona_idpersona` INT NOT NULL,
@@ -341,8 +339,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`telefono` (
   `creado_en` DATETIME NOT NULL,
   `actualizado_en` DATETIME NOT NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   `persona_idpersona` INT NOT NULL,
@@ -382,8 +380,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`pais` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   `activo` TINYINT NOT NULL,
@@ -405,7 +403,7 @@ CREATE TABLE IF NOT EXISTS `mydb`.`pais` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `tag_UNIQUE` ON `mydb`.`pais` (`tag` ASC) VISIBLE;
+CREATE UNIQUE INDEX `tag_UNIQUE` ON `mydb`.`pais` (`tag` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -425,11 +423,10 @@ CREATE TABLE IF NOT EXISTS `mydb`.`aeropuerto` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
-  `pais_idpais` INT NOT NULL,
   PRIMARY KEY (`idaeropuerto`),
   CONSTRAINT `fk_aeropuerto_creado_por`
     FOREIGN KEY (`creado_por`)
@@ -445,15 +442,10 @@ CREATE TABLE IF NOT EXISTS `mydb`.`aeropuerto` (
     FOREIGN KEY (`eliminado_por`)
     REFERENCES `mydb`.`usuario` (`idusuario`)
     ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_aeropuerto_pais1`
-    FOREIGN KEY (`pais_idpais`)
-    REFERENCES `mydb`.`pais` (`idpais`)
-    ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `tag_UNIQUE` ON `mydb`.`aeropuerto` (`tag` ASC) VISIBLE;
+CREATE UNIQUE INDEX `tag_UNIQUE` ON `mydb`.`aeropuerto` (`tag` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -468,8 +460,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`terminal` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   `aeropuerto_idaeropuerto` INT NOT NULL,
@@ -509,11 +501,11 @@ CREATE TABLE IF NOT EXISTS `mydb`.`puerta` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
-  `terminal_idterminal` INT NOT NULL,
+  `aeropuerto_idaeropuerto` INT NOT NULL,
   PRIMARY KEY (`idpuerta`),
   CONSTRAINT `fk_puerta_creado_por`
     FOREIGN KEY (`creado_por`)
@@ -530,9 +522,9 @@ CREATE TABLE IF NOT EXISTS `mydb`.`puerta` (
     REFERENCES `mydb`.`usuario` (`idusuario`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_puerta_terminal1`
-    FOREIGN KEY (`terminal_idterminal`)
-    REFERENCES `mydb`.`terminal` (`idterminal`)
+  CONSTRAINT `fk_puerta_aeropuerto1`
+    FOREIGN KEY (`aeropuerto_idaeropuerto`)
+    REFERENCES `mydb`.`aeropuerto` (`idaeropuerto`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -556,8 +548,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`modelo_aeronave` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   PRIMARY KEY (`idmodelo_aeronave`),
@@ -592,11 +584,10 @@ CREATE TABLE IF NOT EXISTS `mydb`.`configuracion_cabina` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
-  `modelo_aeronave_idmodelo_aeronave` INT NOT NULL,
   PRIMARY KEY (`idconfiguracion_cabina`),
   CONSTRAINT `fk_configuracion_cabina_creado_por`
     FOREIGN KEY (`creado_por`)
@@ -611,11 +602,6 @@ CREATE TABLE IF NOT EXISTS `mydb`.`configuracion_cabina` (
   CONSTRAINT `fk_configuracion_cabina_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
     REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_configuracion_cabina_modelo_aeronave1`
-    FOREIGN KEY (`modelo_aeronave_idmodelo_aeronave`)
-    REFERENCES `mydb`.`modelo_aeronave` (`idmodelo_aeronave`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -635,8 +621,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`aeronave` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   `modelo_aeronave_idmodelo_aeronave` INT NOT NULL,
@@ -663,7 +649,7 @@ CREATE TABLE IF NOT EXISTS `mydb`.`aeronave` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `matricula_UNIQUE` ON `mydb`.`aeronave` (`matricula` ASC) VISIBLE;
+CREATE UNIQUE INDEX `matricula_UNIQUE` ON `mydb`.`aeronave` (`matricula` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -682,8 +668,8 @@ CREATE TABLE IF NOT EXISTS `mydb`.`asiento` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   `nota` VARCHAR(200) NULL,
@@ -711,11 +697,11 @@ CREATE TABLE IF NOT EXISTS `mydb`.`asiento` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `cabina_UNIQUE` ON `mydb`.`asiento` (`cabina` ASC) VISIBLE;
+CREATE UNIQUE INDEX `cabina_UNIQUE` ON `mydb`.`asiento` (`cabina` ASC) ;
 
-CREATE UNIQUE INDEX `fila_UNIQUE` ON `mydb`.`asiento` (`fila` ASC) VISIBLE;
+CREATE UNIQUE INDEX `fila_UNIQUE` ON `mydb`.`asiento` (`fila` ASC) ;
 
-CREATE UNIQUE INDEX `columna_UNIQUE` ON `mydb`.`asiento` (`columna` ASC) VISIBLE;
+CREATE UNIQUE INDEX `columna_UNIQUE` ON `mydb`.`asiento` (`columna` ASC) ;
 
 
 -- -----------------------------------------------------
@@ -731,12 +717,13 @@ CREATE TABLE IF NOT EXISTS `mydb`.`ruta` (
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
   `eliminado_motivo` VARCHAR(200) NULL,
   `origen_aeropuerto` INT NOT NULL,
   `destino_aeropuerto` INT NOT NULL,
+  `origen_destino` INT NULL,
   PRIMARY KEY (`idruta`),
   CONSTRAINT `fk_ruta_creado_por`
     FOREIGN KEY (`creado_por`)
@@ -756,102 +743,11 @@ CREATE TABLE IF NOT EXISTS `mydb`.`ruta` (
   CONSTRAINT `fk_ruta_origen_aeropuerto`
     FOREIGN KEY (`origen_aeropuerto`)
     REFERENCES `mydb`.`aeropuerto` (`idaeropuerto`)
-    ON DELETE CASCADE
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_ruta_destino_aeropuerto`
     FOREIGN KEY (`destino_aeropuerto`)
     REFERENCES `mydb`.`aeropuerto` (`idaeropuerto`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-CREATE UNIQUE INDEX `origen_aeropuerto_UNIQUE` ON `mydb`.`ruta` (`origen_aeropuerto` ASC) VISIBLE;
-
-
--- -----------------------------------------------------
--- Table `mydb`.`vuelo_programado`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `mydb`.`vuelo_programado` ;
-
-CREATE TABLE IF NOT EXISTS `mydb`.`vuelo_programado` (
-  `idvuelo_programado` INT NOT NULL AUTO_INCREMENT,
-  `codigo_vuelo` VARCHAR(10) NOT NULL,
-  `frecuencia` VARCHAR(64) NULL,
-  `hora_salida` TIME NULL,
-  `hora_llegada` TIME NULL,
-  `equipo_preferido` VARCHAR(45) NULL,
-  `activo` TINYINT NULL,
-  `ruta_idruta` INT NOT NULL,
-  `creado_en` DATETIME NULL,
-  `actualizado_en` DATETIME NULL,
-  `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
-  `eliminado_por` INT NULL,
-  `eliminado_motivo` VARCHAR(200) NULL,
-  PRIMARY KEY (`idvuelo_programado`),
-  CONSTRAINT `fk_vuelo_programado_ruta1`
-    FOREIGN KEY (`ruta_idruta`)
-    REFERENCES `mydb`.`ruta` (`idruta`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_vuelo_programado_creado_por`
-    FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_vuelo_programado_actualizado_por`
-    FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_vuelo_programado_eliminado_por`
-    FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `mydb`.`vuelo`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `mydb`.`vuelo` ;
-
-CREATE TABLE IF NOT EXISTS `mydb`.`vuelo` (
-  `idvuelo` INT NOT NULL AUTO_INCREMENT,
-  `fecha_operacion` DATE NOT NULL,
-  `std` DATETIME NULL,
-  `sta` DATETIME NULL,
-  `etd` DATETIME NULL,
-  `eta` DATETIME NULL,
-  `atd` DATETIME NULL,
-  `ata` DATETIME NULL,
-  `estado` ENUM('programado', 'embarque', 'en_ruta', 'aterrizado', 'cancelado', 'desviado') NOT NULL,
-  `irregularidad_motivo` VARCHAR(200) NULL,
-  `puerta_salida_idpuerta` INT NOT NULL,
-  `puerta_llegada_idpuerta` INT NULL,
-  `aeronave_idaeronave` INT NOT NULL,
-  `vuelo_programado_idvuelo_programado` INT NOT NULL,
-  PRIMARY KEY (`idvuelo`),
-  CONSTRAINT `fk_vuelo_puerta_llegada`
-    FOREIGN KEY (`puerta_llegada_idpuerta`)
-    REFERENCES `mydb`.`puerta` (`idpuerta`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_vuelo_aeronave1`
-    FOREIGN KEY (`aeronave_idaeronave`)
-    REFERENCES `mydb`.`aeronave` (`idaeronave`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_vuelo_vuelo_programado1`
-    FOREIGN KEY (`vuelo_programado_idvuelo_programado`)
-    REFERENCES `mydb`.`vuelo_programado` (`idvuelo_programado`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_vuelo_puerta_salida`
-    FOREIGN KEY (`puerta_salida_idpuerta`)
-    REFERENCES `mydb`.`puerta` (`idpuerta`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -864,28 +760,23 @@ DROP TABLE IF EXISTS `mydb`.`tarifa` ;
 
 CREATE TABLE IF NOT EXISTS `mydb`.`tarifa` (
   `idtarifa` INT NOT NULL AUTO_INCREMENT,
-  `ruta_idruta` INT NOT NULL,
-  `clase` ENUM('primera clase', 'ejecutivo', 'economica') NOT NULL,
-  `precio_base` DECIMAL(12,2) NOT NULL,
+  `nombre` ENUM('Primera clase', 'Ejecutivo', 'Economica', 'Economica plus') NOT NULL,
+  `precio` DECIMAL(12,2) NOT NULL,
   `impuesto` DECIMAL(5,2) NOT NULL,
   `tasa_fija` DECIMAL(12,2) NOT NULL,
-  `tarifacol` VARCHAR(45) NOT NULL,
-  `vigencia_desde` DATE NULL,
-  `vigencia_hasta` DATE NULL,
+  `tarifacol` DECIMAL(12,2) NOT NULL,
+  `vigencia_desde` DATE NOT NULL,
+  `vigencia_hasta` DATE NOT NULL,
   `activo` TINYINT NOT NULL,
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
-  `creado_por` INT NOT NULL,
-  `actualizado_por` INT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
   `eliminado_por` INT NULL,
-  `eliminado_motivo` VARCHAR(200) NULL,
+  `eliminado_motivio` VARCHAR(200) NULL,
+  `condiciones` TEXT NOT NULL,
   PRIMARY KEY (`idtarifa`),
-  CONSTRAINT `fk_tarifa_ruta1`
-    FOREIGN KEY (`ruta_idruta`)
-    REFERENCES `mydb`.`ruta` (`idruta`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
   CONSTRAINT `fk_tarifa_creado_por`
     FOREIGN KEY (`creado_por`)
     REFERENCES `mydb`.`usuario` (`idusuario`)
@@ -902,6 +793,343 @@ CREATE TABLE IF NOT EXISTS `mydb`.`tarifa` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `nombre_UNIQUE` ON `mydb`.`tarifa` (`nombre` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`promocion`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `mydb`.`promocion` ;
+
+CREATE TABLE IF NOT EXISTS `mydb`.`promocion` (
+  `idpromocion` INT NOT NULL AUTO_INCREMENT,
+  `nombre` VARCHAR(120) NOT NULL,
+  `descripcion` VARCHAR(200) NULL,
+  `valor` SMALLINT NOT NULL,
+  `activo` TINYINT NOT NULL,
+  `tarifa_idtarifa` INT NOT NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  PRIMARY KEY (`idpromocion`),
+  CONSTRAINT `fk_promocion_tarifa1`
+    FOREIGN KEY (`tarifa_idtarifa`)
+    REFERENCES `mydb`.`tarifa` (`idtarifa`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_promocion_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_promocion_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_promocion_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`vuelo`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `mydb`.`vuelo` ;
+
+CREATE TABLE IF NOT EXISTS `mydb`.`vuelo` (
+  `idvuelo` INT NOT NULL AUTO_INCREMENT,
+  `codigo_publico` VARCHAR(10) NOT NULL,
+  `fecha_salida_prog` DATETIME NOT NULL,
+  `fecha_llegada_prog` DATETIME NOT NULL,
+  `fecha_salida_real` DATETIME NULL,
+  `fecha_llegada_real` DATETIME NULL,
+  `estado` ENUM('PROGRAMADO', 'ABORDANDO', 'EN_AIRE', 'ATERRIZADO', 'CANCELADO', 'DEMORADO') NOT NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  `puerta_idpuerta` INT NOT NULL,
+  `terminal_idterminal` INT NOT NULL,
+  `aeropuerto_idaeropuerto` INT NOT NULL,
+  `ruta_idruta` INT NOT NULL,
+  `aeronave_idaeronave` INT NOT NULL,
+  PRIMARY KEY (`idvuelo`),
+  CONSTRAINT `fk_vuelo_puerta1`
+    FOREIGN KEY (`puerta_idpuerta`)
+    REFERENCES `mydb`.`puerta` (`idpuerta`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_terminal1`
+    FOREIGN KEY (`terminal_idterminal`)
+    REFERENCES `mydb`.`terminal` (`idterminal`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_aeropuerto1`
+    FOREIGN KEY (`aeropuerto_idaeropuerto`)
+    REFERENCES `mydb`.`aeropuerto` (`idaeropuerto`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_ruta1`
+    FOREIGN KEY (`ruta_idruta`)
+    REFERENCES `mydb`.`ruta` (`idruta`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_aeronave1`
+    FOREIGN KEY (`aeronave_idaeronave`)
+    REFERENCES `mydb`.`aeronave` (`idaeronave`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`asiento_vuelo`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `mydb`.`asiento_vuelo` ;
+
+CREATE TABLE IF NOT EXISTS `mydb`.`asiento_vuelo` (
+  `idasiento_vuelo` INT NOT NULL AUTO_INCREMENT,
+  `vuelo_idvuelo` INT NOT NULL,
+  `asiento_idasiento` INT NOT NULL,
+  `estado` ENUM('LIBRE', 'RESERVADO', 'EMITIDO', 'BLOQUEADO') NOT NULL,
+  `bloqueado_motivo` VARCHAR(100) NULL,
+  `codigo_asiento` VARCHAR(6) NOT NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  PRIMARY KEY (`idasiento_vuelo`),
+  CONSTRAINT `fk_asiento_vuelo_vuelo1`
+    FOREIGN KEY (`vuelo_idvuelo`)
+    REFERENCES `mydb`.`vuelo` (`idvuelo`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_asiento_vuelo_asiento1`
+    FOREIGN KEY (`asiento_idasiento`)
+    REFERENCES `mydb`.`asiento` (`idasiento`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_asiento_vuelo_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_asiento_vuelo_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_asiento_vuelo_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`reserva`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `mydb`.`reserva` ;
+
+CREATE TABLE IF NOT EXISTS `mydb`.`reserva` (
+  `idreserva` INT NOT NULL AUTO_INCREMENT,
+  `estado` ENUM('NUEVA', 'CONFIRMADA', 'CANCELADA', 'CHECKIN', 'VOLADA') NOT NULL,
+  `codigo_reserva` CHAR(6) NOT NULL,
+  `usuario_idusuario` INT NULL,
+  `tarifa_idtarifa` INT NOT NULL,
+  `promocion_idpromocion` INT NOT NULL,
+  `moneda` CHAR(3) NOT NULL,
+  `total_bruto` DECIMAL(12,2) NOT NULL,
+  `total_neto` DECIMAL(12,2) NOT NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  PRIMARY KEY (`idreserva`),
+  CONSTRAINT `fk_reserva_usuario1`
+    FOREIGN KEY (`usuario_idusuario`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_tarifa1`
+    FOREIGN KEY (`tarifa_idtarifa`)
+    REFERENCES `mydb`.`tarifa` (`idtarifa`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_promocion1`
+    FOREIGN KEY (`promocion_idpromocion`)
+    REFERENCES `mydb`.`promocion` (`idpromocion`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `codigo_reserva_UNIQUE` ON `mydb`.`reserva` (`codigo_reserva` ASC) ;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`reserva_persona`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `mydb`.`reserva_persona` ;
+
+CREATE TABLE IF NOT EXISTS `mydb`.`reserva_persona` (
+  `idreserva_persona` INT NOT NULL AUTO_INCREMENT,
+  `reserva_idreserva` INT NOT NULL,
+  `persona_idpersona` INT NOT NULL,
+  `tipo` ENUM('ADULTO', 'MENOR', 'INFANTE') NOT NULL,
+  `documentacion_iddocumentacion` INT NOT NULL,
+  `creado_en` DATETIME NULL,
+  `actualizdo_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  PRIMARY KEY (`idreserva_persona`),
+  CONSTRAINT `fk_reserva_pasajero_reserva1`
+    FOREIGN KEY (`reserva_idreserva`)
+    REFERENCES `mydb`.`reserva` (`idreserva`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_pasajero_persona1`
+    FOREIGN KEY (`persona_idpersona`)
+    REFERENCES `mydb`.`persona` (`idpersona`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_persona_documentacion1`
+    FOREIGN KEY (`documentacion_iddocumentacion`)
+    REFERENCES `mydb`.`documentacion` (`iddocumentacion`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_persona_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_persona_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_reserva_persona_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `mydb`.`boleto`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `mydb`.`boleto` ;
+
+CREATE TABLE IF NOT EXISTS `mydb`.`boleto` (
+  `idboleto` INT NOT NULL AUTO_INCREMENT,
+  `reserva_idreserva` INT NOT NULL,
+  `reserva_persona_idreserva_persona` INT NOT NULL,
+  `vuelo_idvuelo` INT NOT NULL,
+  `asiento_vuelo_idasiento_vuelo` INT NULL,
+  `estado_boleto` ENUM('ABIERTO', 'EMITIDO', 'USADO', 'NO_SHOW', 'REEMBOLSADO', 'CANCELADO') NOT NULL,
+  `costo_total` DECIMAL(12,2) NOT NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  PRIMARY KEY (`idboleto`),
+  CONSTRAINT `fk_boleto_reserva1`
+    FOREIGN KEY (`reserva_idreserva`)
+    REFERENCES `mydb`.`reserva` (`idreserva`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_boleto_reserva_persona1`
+    FOREIGN KEY (`reserva_persona_idreserva_persona`)
+    REFERENCES `mydb`.`reserva_persona` (`idreserva_persona`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_boleto_vuelo1`
+    FOREIGN KEY (`vuelo_idvuelo`)
+    REFERENCES `mydb`.`vuelo` (`idvuelo`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_boleto_asiento_vuelo1`
+    FOREIGN KEY (`asiento_vuelo_idasiento_vuelo`)
+    REFERENCES `mydb`.`asiento_vuelo` (`idasiento_vuelo`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_boleto_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_boleto_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_boleto_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `mydb`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `vuelo_idvuelo_UNIQUE` ON `mydb`.`boleto` (`vuelo_idvuelo` ASC) ;
+
+CREATE UNIQUE INDEX `reserva_idreserva_UNIQUE` ON `mydb`.`boleto` (`reserva_idreserva` ASC) ;
+
+CREATE UNIQUE INDEX `reserva_persona_idreserva_persona_UNIQUE` ON `mydb`.`boleto` (`reserva_persona_idreserva_persona` ASC) ;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;

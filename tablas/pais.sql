@@ -1,82 +1,79 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: PAIS
---  Rol: catálogo de países para normalizar referencias geográficas en el sistema.
---       Se usa, por ejemplo, en aeropuerto (FK) y puede usarse en direcciones/documentos.
---  Relacionada con:
---    - usuario (FKs de auditoría): quién creó/actualizó/eliminó lógicamente.
---    - aeropuerto (otras tablas referencian idpais).
--- =================================================================================================
+--  Catálogo de países para normalizar direcciones y referencias geográficas.
+--  Campos clave:
+--    • tag: código ISO-3166-1 alfa-2 (AR, BR, US, etc.) → ÚNICO.
+--    • activo: habilita/deshabilita el país sin borrarlo.
+--  Dependencias:
+--    • usuario(idusuario) para auditoría (creado/actualizado/eliminado_por).
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`pais`;
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `pais`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`pais` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `pais` (
+  -- Identificador único del país
+  `idpais`            INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idpais` INT NOT NULL AUTO_INCREMENT,        -- PK interna del país
+  -- Código ISO-3166-1 alfa-2 (AR, BR, US, ...)
+  `tag`               VARCHAR(2) NOT NULL,
 
-  -- ===============================================================================================
-  -- 2) ATRIBUTOS PRINCIPALES
-  -- ===============================================================================================
-  `tag`     VARCHAR(2)   NOT NULL,             -- Código de país (ISO 3166-1 alfa-2, ej.: AR, US)
-  `nombre`  VARCHAR(90)  NOT NULL,             -- Nombre oficial del país
-  `activo`  TINYINT      NOT NULL,             -- 1=activo en catálogo, 0=inactivo
+  -- Nombre oficial/estándar del país
+  `nombre`            VARCHAR(90) NOT NULL,
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`      DATETIME   NULL,            -- Cuándo se creó el registro
-  `actualizado_en` DATETIME   NULL,            -- Última actualización
-  `eliminado_en`   DATETIME   NULL,            -- Marca de borrado lógico (si aplica)
+  -- Auditoría temporal
+  `creado_en`         DATETIME NULL,
+  `actualizado_en`    DATETIME NULL,
+  `eliminado_en`      DATETIME NULL,
 
-  `creado_por`     INT        NOT NULL,        -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT       NOT NULL,        -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por`  INT        NULL,            -- FK → usuario.idusuario (quién “elimina” lógicamente)
-  `eliminado_motivo` VARCHAR(200) NULL,        -- Motivo del borrado lógico (si existe)
+  -- Auditoría de usuario
+  `creado_por`        INT NULL,
+  `actualizado_por`   INT NULL,
+  `eliminado_por`     INT NULL,
+  `eliminado_motivo`  VARCHAR(200) NULL,
 
-  -- ===============================================================================================
-  -- 4) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Estado lógico
+  `activo`            TINYINT NOT NULL,
+
+  -- Clave primaria
   PRIMARY KEY (`idpais`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas (auditoría)
+  -- ────────────────
   CONSTRAINT `fk_pais_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_pais_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_pais_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- ÍNDICES / REGLAS DE UNICIDAD
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- Unicidad de tag (código ISO alfa-2): evita duplicar el mismo país por código
-CREATE UNIQUE INDEX `tag_UNIQUE`
-  ON `mydb`.`pais` (`tag` ASC) VISIBLE;
+-- Índice único para el código de país (evita duplicados)
+CREATE UNIQUE INDEX `tag_UNIQUE` ON `pais` (`tag` ASC);
 
--- =================================================================================================
---  NOTAS DE USO
---  • Usar `tag` para almacenar/validar códigos de país en otras tablas (ej.: aeropuerto.pais_idpais).
---  • `activo` permite ocultar países sin perder referencias históricas.
--- =================================================================================================
+-- (Opcional) Índice para búsquedas por nombre:
+-- CREATE INDEX `ix_pais_nombre` ON `pais` (`nombre`);
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: PAIS
+-- ═══════════════════════════════════════════════════════════════════════════════

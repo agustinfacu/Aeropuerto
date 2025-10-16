@@ -1,107 +1,105 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: RUTA
---  Rol: catálogo de tramos origen→destino entre aeropuertos. Base para vuelos programados y vuelos.
---  Relacionada con:
---    - aeropuerto (FK doble): origen_aeropuerto y destino_aeropuerto.
---    - usuario (FKs de auditoría): quién creó/actualizó/borró lógicamente.
---    - vuelo_programado / vuelo (indirecto): referencian esta ruta para planificar/operar.
--- =================================================================================================
+--  Define un tramo origen → destino entre aeropuertos, con distancia y tiempo.
+--  Campos clave:
+--    • distancia_km: distancia estimada de la ruta.
+--    • timepo_estimado (sic): duración estimada en minutos (SMALLINT).
+--    • activo: habilita/deshabilita la ruta sin borrarla.
+--  Dependencias:
+--    • aeropuerto(idaeropuerto): origen_aeropuerto y destino_aeropuerto.
+--    • usuario(idusuario): auditoría (creado/actualizado/eliminado_por).
+--  Notas:
+--    • Podés forzar que origen ≠ destino con un CHECK (MySQL 8.0+) o trigger.
+--    • `origen_destino` quedó en el esquema; puede servir para una clave
+--      derivada/normalizada (ej. hash o ID lógico). Lo mantengo tal cual.
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`ruta`;
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `ruta`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`ruta` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `ruta` (
+  -- Identificador único
+  `idruta`             INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idruta` INT NOT NULL AUTO_INCREMENT,           -- PK interna de la ruta
+  -- Métricas y estado
+  `distancia_km`       INT NOT NULL,
+  `timepo_estimado`    SMALLINT NULL,      -- (sic) minutos estimados de vuelo
+  `activo`             TINYINT NULL,       -- 0 = inactiva, 1 = activa
 
-  -- ===============================================================================================
-  -- 2) ATRIBUTOS PRINCIPALES
-  -- ===============================================================================================
-  `distancia_km`    INT       NOT NULL,          -- Distancia estimada del tramo en kilómetros
-  `timepo_estimado` SMALLINT  NULL,              -- (sic, tal cual en tu DDL) Tiempo estimado (minutos)
-  `activo`          TINYINT   NULL,              -- 1=disponible para programar, 0=no disponible
+  -- Auditoría temporal
+  `creado_en`          DATETIME NULL,
+  `actualizado_en`     DATETIME NULL,
+  `eliminado_en`       DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`       DATETIME  NULL,              -- Cuándo se creó
-  `actualizado_en`  DATETIME  NULL,              -- Última actualización
-  `eliminado_en`    DATETIME  NULL,              -- Marca de borrado lógico (si aplica)
-  `creado_por`      INT       NOT NULL,          -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT       NOT NULL,          -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por`   INT       NULL,              -- FK → usuario.idusuario (quién “elimina” lógicamente)
-  `eliminado_motivo` VARCHAR(200) NULL,          -- Motivo del borrado lógico (si existe)
+  -- Auditoría de usuarios
+  `creado_por`         INT NULL,
+  `actualizado_por`    INT NULL,
+  `eliminado_por`      INT NULL,
+  `eliminado_motivo`   VARCHAR(200) NULL,
 
-  -- ===============================================================================================
-  -- 4) RELACIONES ORIGEN/DESTINO
-  -- ===============================================================================================
-  `origen_aeropuerto`  INT NOT NULL,             -- FK → aeropuerto.idaeropuerto (salida)
-  `destino_aeropuerto` INT NOT NULL,             -- FK → aeropuerto.idaeropuerto (llegada)
+  -- Relaciones fuertes
+  `origen_aeropuerto`  INT NOT NULL,
+  `destino_aeropuerto` INT NOT NULL,
 
-  -- ===============================================================================================
-  -- 5) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Campo adicional presente en tu esquema
+  `origen_destino`     INT NULL,
+
+  -- Clave primaria
   PRIMARY KEY (`idruta`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas
+  -- ────────────────
   CONSTRAINT `fk_ruta_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_ruta_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_ruta_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs con AEROPUERTO → aeropuerto(idaeropuerto)
-  --   Nota: ON DELETE CASCADE significa que al borrar un aeropuerto se borran sus rutas asociadas.
-  -- ------------------------------------------------------------------------------------------------
   CONSTRAINT `fk_ruta_origen_aeropuerto`
     FOREIGN KEY (`origen_aeropuerto`)
-    REFERENCES `mydb`.`aeropuerto` (`idaeropuerto`)
-    ON DELETE CASCADE ON UPDATE NO ACTION,
+    REFERENCES `aeropuerto` (`idaeropuerto`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_ruta_destino_aeropuerto`
     FOREIGN KEY (`destino_aeropuerto`)
-    REFERENCES `mydb`.`aeropuerto` (`idaeropuerto`)
-    ON DELETE CASCADE ON UPDATE NO ACTION
+    REFERENCES `aeropuerto` (`idaeropuerto`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
+
+  -- (Opcional) Con MySQL 8.0+, podés activar:
+  -- ,CONSTRAINT `ck_ruta_origen_neq_destino` CHECK (`origen_aeropuerto` <> `destino_aeropuerto`)
 )
 ENGINE = InnoDB;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- ÍNDICES / REGLAS DE UNICIDAD
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- Nota: índice UNIQUE original sobre origen_aeropuerto. 
---       En práctica suele usarse UNIQUE (origen_aeropuerto, destino_aeropuerto) para evitar duplicar
---       rutas en el mismo sentido, permitiendo múltiples orígenes con el mismo aeropuerto.
---       Se deja tal cual para NO modificar tu esquema actual.
-CREATE UNIQUE INDEX `origen_aeropuerto_UNIQUE`
-  ON `mydb`.`ruta` (`origen_aeropuerto` ASC) VISIBLE;
+-- (Opcionales recomendados)
+-- • Búsquedas por origen/destino:
+--   CREATE INDEX `ix_ruta_origen`  ON `ruta` (`origen_aeropuerto`);
+--   CREATE INDEX `ix_ruta_destino` ON `ruta` (`destino_aeropuerto`);
+-- • Evitar rutas duplicadas (origen, destino):
+--   -- CREATE UNIQUE INDEX `ux_ruta_origen_destino`
+--   --   ON `ruta` (`origen_aeropuerto`, `destino_aeropuerto`);
 
--- =================================================================================================
---  NOTAS DE USO
---  • Base para vuelo_programado (frecuencia/hora estándar) y vuelo (instancias operativas).
---  • Considerá agregar más adelante:
---      - UNIQUE (origen_aeropuerto, destino_aeropuerto)
---      - Índices por (origen_aeropuerto) y (destino_aeropuerto) para búsquedas rápidas.
---      - Validación para evitar origen=destino.
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: RUTA
+-- ═══════════════════════════════════════════════════════════════════════════════

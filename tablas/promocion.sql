@@ -1,97 +1,89 @@
 USE `mydb`;
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  TABLA: DIRECCION
---  Direcciones asociadas a una persona (domicilio, laboral, comercial, etc.).
+--  TABLA: PROMOCION
+--  Promociones/bonificaciones asociadas a una tarifa.
 --  Campos clave:
---    • tipo: clasifica la dirección (ENUM).
---    • es_principal: marca la dirección principal de la persona (0/1).
+--    • nombre: identificador legible de la promo.
+--    • valor: porcentaje o unidad (según definas en la app).
+--    • activo: habilita/deshabilita la promo sin borrarla.
 --  Dependencias:
---    • persona(idpersona)  → titular de la dirección.
---    • usuario(idusuario)  → auditoría (creado/actualizado/eliminado_por).
---  Notas:
---    • Auditoría usa ON DELETE SET NULL para no perder la dirección si se borra
---      el usuario que realizó la acción.
+--    • tarifa(idtarifa)  → a qué tarifa aplica la promoción.
+--    • usuario(idusuario)→ auditoría (creado/actualizado/eliminado_por).
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
 -- ───────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `direccion`;
+DROP TABLE IF EXISTS `promocion`;
 
 -- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
 -- ───────────────────────────────────────────────────────────────────────────────
-CREATE TABLE `direccion` (
+CREATE TABLE `promocion` (
   -- Identificador único
-  `iddireccion`       INT NOT NULL AUTO_INCREMENT,
+  `idpromocion`        INT NOT NULL AUTO_INCREMENT,
 
-  -- Clasificación y localización
-  `tipo`              ENUM('Domicilio', 'Laboral', 'Comercial', 'Otro') NOT NULL,
-  `pais`              CHAR(2) NOT NULL,          -- ISO-3166-1 alfa-2
-  `provincia`         VARCHAR(120) NULL,
-  `ciudad`            VARCHAR(120) NOT NULL,
-  `cp`                VARCHAR(15) NULL,          -- código postal
-  `calle`             VARCHAR(120) NOT NULL,
-  `numero`            VARCHAR(15) NOT NULL,
-  `piso`              VARCHAR(10) NULL,
-  `depto`             VARCHAR(10) NULL,
-  `comentario`        TEXT NULL,                 -- referencias, entre calles, etc.
-  `es_principal`      TINYINT NOT NULL,          -- 0 = no, 1 = sí
-
-  -- Auditoría temporal
-  `creado_en`         DATETIME NOT NULL,
-  `actualizado_en`    DATETIME NOT NULL,
-  `eliminado_en`      DATETIME NULL,
-
-  -- Auditoría de usuario
-  `creado_por`        INT NULL,
-  `actualizado_por`   INT NULL,
-  `eliminado_por`     INT NULL,
-  `eliminado_motivo`  VARCHAR(200) NULL,
+  -- Identidad / reglas
+  `nombre`             VARCHAR(120) NOT NULL,
+  `descripcion`        VARCHAR(200) NULL,
+  `valor`              SMALLINT NOT NULL,   -- interpreta como %, puntos, etc. según tu negocio
+  `activo`             TINYINT NOT NULL,    -- 0 = inactiva, 1 = activa
 
   -- Relación fuerte
-  `persona_idpersona` INT NOT NULL,
+  `tarifa_idtarifa`    INT NOT NULL,
+
+  -- Auditoría temporal
+  `creado_en`          DATETIME NULL,
+  `actualizado_en`     DATETIME NULL,
+  `eliminado_en`       DATETIME NULL,
+
+  -- Auditoría de usuarios
+  `creado_por`         INT NULL,
+  `actualizado_por`    INT NULL,
+  `eliminado_por`      INT NULL,
+  `eliminado_motivo`   VARCHAR(200) NULL,
 
   -- Clave primaria
-  PRIMARY KEY (`iddireccion`),
+  PRIMARY KEY (`idpromocion`),
 
   -- ────────────────
   -- Claves foráneas
   -- ────────────────
-  CONSTRAINT `fk_direccion_persona`
-    FOREIGN KEY (`persona_idpersona`)
-    REFERENCES `persona` (`idpersona`)
+  CONSTRAINT `fk_promocion_tarifa1`
+    FOREIGN KEY (`tarifa_idtarifa`)
+    REFERENCES `tarifa` (`idtarifa`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_direccion_creado_por`
+  CONSTRAINT `fk_promocion_creado_por`
     FOREIGN KEY (`creado_por`)
     REFERENCES `usuario` (`idusuario`)
-    ON DELETE SET NULL
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_direccion_actualizado_por`
+  CONSTRAINT `fk_promocion_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
     REFERENCES `usuario` (`idusuario`)
-    ON DELETE SET NULL
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION,
 
-  CONSTRAINT `fk_direccion_eliminado_por`
+  CONSTRAINT `fk_promocion_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
     REFERENCES `usuario` (`idusuario`)
-    ON DELETE SET NULL
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
 -- (Opcionales recomendados)
--- • Búsquedas por persona:
---   CREATE INDEX `ix_direccion_persona` ON `direccion` (`persona_idpersona`);
--- • Única dirección principal por persona (si querés forzarla a nivel DB):
---   -- Requiere MySQL 8.0 con índices parciales simulados vía CHECK + trigger,
---   -- o resolver lógicamente en la aplicación.
+-- • Búsquedas por tarifa/estado:
+--   CREATE INDEX `ix_promocion_tarifa` ON `promocion` (`tarifa_idtarifa`);
+--   CREATE INDEX `ix_promocion_activo` ON `promocion` (`activo`);
+-- • Evitar nombres duplicados por tarifa:
+--   -- CREATE UNIQUE INDEX `ux_promocion_nombre_tarifa`
+--   --   ON `promocion` (`tarifa_idtarifa`, `nombre`);
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FIN TABLA: DIRECCION
+--  FIN TABLA: PROMOCION
 -- ═══════════════════════════════════════════════════════════════════════════════

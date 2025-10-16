@@ -1,97 +1,90 @@
 USE `mydb`;
 
--- =================================================================================================
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  TABLA: AERONAVE
---  Rol: catálogo maestro de las aeronaves físicas de la flota
---  Relacionada con: 
---    - modelo_aeronave (FK): define fabricante/modelo/capacidades
---    - asiento (otras tablas referencian idaeronave para el plano de butacas)
---    - vuelo  (otras tablas referencian idaeronave para asignación de equipo a un vuelo)
--- =================================================================================================
+--  Flota de aeronaves de la compañía.
+--  Campos clave:
+--    • matricula: identificador único de la aeronave (ej.: LV-ABC) → ÚNICO.
+--    • estado: activa / en_mantenimiento / retirada.
+--    • modelo_aeronave_idmodelo_aeronave: referencia al modelo técnico.
+--  Dependencias:
+--    • modelo_aeronave(idmodelo_aeronave) → especificaciones técnicas.
+--    • usuario(idusuario) → auditoría (creado/actualizado/eliminado_por).
+-- ═══════════════════════════════════════════════════════════════════════════════
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Limpieza (solo para entornos de desarrollo)
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `mydb`.`aeronave`;
+-- ───────────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS `aeronave`;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
+-- ───────────────────────────────────────────────────────────────────────────────
 -- Definición de tabla
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS `mydb`.`aeronave` (
+-- ───────────────────────────────────────────────────────────────────────────────
+CREATE TABLE `aeronave` (
+  -- Identificador único
+  `idaeronave`                          INT NOT NULL AUTO_INCREMENT,
 
-  -- ===============================================================================================
-  -- 1) IDENTIDAD / CLAVES
-  -- ===============================================================================================
-  `idaeronave` INT NOT NULL AUTO_INCREMENT,     -- PK interna de la aeronave; usada por otras tablas
+  -- Identidad / estado
+  `matricula`                           VARCHAR(15) NOT NULL,  -- ej.: LV-ABC
+  `fecha_de_alta`                       DATE NOT NULL,
+  `estado`                              ENUM('activa', 'en_mantenimiento', 'retirada') NOT NULL,
+  `nota`                                TEXT NULL,
 
-  -- ===============================================================================================
-  -- 2) CLAVES DE NEGOCIO / ATRIBUTOS PRINCIPALES
-  -- ===============================================================================================
-  `matricula`       VARCHAR(15) NOT NULL,       -- Matrícula única del avión (ej.: LV-HXX, N123AB)
-  `fecha_de_alta`   DATE        NOT NULL,       -- Fecha en que el avión ingresa a la flota
-  `estado`          ENUM('activa','en_mantenimiento','retirada') NOT NULL,  -- Situación operativa
-  `nota`            TEXT        NULL,           -- Observaciones libres (historial, particularidades)
+  -- Auditoría temporal
+  `creado_en`                           DATETIME NULL,
+  `actualizado_en`                      DATETIME NULL,
+  `eliminado_en`                        DATETIME NULL,
 
-  -- ===============================================================================================
-  -- 3) AUDITORÍA (borrado lógico incluido)
-  -- ===============================================================================================
-  `creado_en`       DATETIME    NULL,           -- Cuándo se creó el registro
-  `actualizado_en`  DATETIME    NULL,           -- Última actualización
-  `eliminado_en`    DATETIME    NULL,           -- Marca de borrado lógico (si aplica)
+  -- Auditoría de usuarios
+  `creado_por`                          INT NULL,
+  `actualizado_por`                     INT NULL,
+  `eliminado_por`                       INT NULL,
+  `eliminado_motivo`                    VARCHAR(200) NULL,
 
-  `creado_por`      INT         NOT NULL,       -- FK → usuario.idusuario (quién crea)
-  `actualizado_por` INT         NOT NULL,       -- FK → usuario.idusuario (quién actualiza)
-  `eliminado_por`   INT         NULL,           -- FK → usuario.idusuario (quién “elimina” lógicamente)
-  `eliminado_motivo` VARCHAR(200) NULL,         -- Motivo del borrado lógico (si existe)
+  -- Relación fuerte
+  `modelo_aeronave_idmodelo_aeronave`   INT NOT NULL,
 
-  -- ===============================================================================================
-  -- 4) RELACIÓN CON CATÁLOGO DE MODELOS
-  -- ===============================================================================================
-  `modelo_aeronave_idmodelo_aeronave` INT NOT NULL, -- FK → modelo_aeronave.idmodelo_aeronave
-
-  -- ===============================================================================================
-  -- 5) CLAVES / RESTRICCIONES
-  -- ===============================================================================================
+  -- Clave primaria
   PRIMARY KEY (`idaeronave`),
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FKs de AUDITORÍA → usuario(idusuario)
-  -- ------------------------------------------------------------------------------------------------
+  -- ────────────────
+  -- Claves foráneas
+  -- ────────────────
   CONSTRAINT `fk_aeronave_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_aeronave_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
   CONSTRAINT `fk_aeronave_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `mydb`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    REFERENCES `usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
 
-  -- ------------------------------------------------------------------------------------------------
-  -- FK con el catálogo de modelos → modelo_aeronave(idmodelo_aeronave)
-  -- ------------------------------------------------------------------------------------------------
   CONSTRAINT `fk_aeronave_modelo_aeronave1`
     FOREIGN KEY (`modelo_aeronave_idmodelo_aeronave`)
-    REFERENCES `mydb`.`modelo_aeronave` (`idmodelo_aeronave`)
-    ON DELETE NO ACTION ON UPDATE NO ACTION
+    REFERENCES `modelo_aeronave` (`idmodelo_aeronave`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION
 )
 ENGINE = InnoDB;
 
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- ÍNDICES / REGLAS DE UNICIDAD
--- ─────────────────────────────────────────────────────────────────────────────────────────────────
--- Unicidad de matrícula: evita duplicar aeronaves con el mismo registro
-CREATE UNIQUE INDEX `matricula_UNIQUE`
-  ON `mydb`.`aeronave` (`matricula` ASC) VISIBLE;
+-- Índice único para matrícula
+CREATE UNIQUE INDEX `matricula_UNIQUE` ON `aeronave` (`matricula` ASC);
 
--- =================================================================================================
---  NOTAS DE USO
---  • asiento.aeronave_idaeronave referencia esta tabla para el plano de butacas por avión.
---  • vuelo.aeronave_idaeronave referencia esta tabla para la asignación de equipo a cada vuelo.
---  • modelo_aeronave define el tipo/base técnica que hereda esta aeronave (fabricante, familia, etc.).
--- =================================================================================================
+-- (Opcionales recomendados)
+-- • Búsquedas por estado:
+--   CREATE INDEX `ix_aeronave_estado` ON `aeronave` (`estado`);
+-- • Búsquedas por modelo:
+--   CREATE INDEX `ix_aeronave_modelo` ON `aeronave` (`modelo_aeronave_idmodelo_aeronave`);
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FIN TABLA: AERONAVE
+-- ═══════════════════════════════════════════════════════════════════════════════
