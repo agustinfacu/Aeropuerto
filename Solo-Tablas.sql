@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`usuario` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `email_norm_UNIQUE` ON `Aerolinea`.`usuario` (`email_norm` ASC) ;
+CREATE UNIQUE INDEX `email_norm_UNIQUE` ON `Aerolinea`.`usuario` (`email_norm` ) ;
 
 
 -- -----------------------------------------------------
@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`persona` (
   `idpersona` INT NOT NULL AUTO_INCREMENT,
   `nombre` VARCHAR(80) NOT NULL,
   `apellido` VARCHAR(80) NOT NULL,
+  `fecha_de_nacimiento` DATE NOT NULL,
   `creado_en` DATETIME NOT NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
@@ -179,7 +180,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`permiso` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `codigo_UNIQUE` ON `Aerolinea`.`permiso` (`codigo` ASC) ;
+CREATE UNIQUE INDEX `codigo_UNIQUE` ON `Aerolinea`.`permiso` (`codigo` ) ;
 
 
 -- -----------------------------------------------------
@@ -403,7 +404,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`pais` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `tag_UNIQUE` ON `Aerolinea`.`pais` (`tag` ASC) ;
+CREATE UNIQUE INDEX `tag_UNIQUE` ON `Aerolinea`.`pais` (`tag`) ;
 
 
 -- -----------------------------------------------------
@@ -445,7 +446,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`aeropuerto` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `tag_UNIQUE` ON `Aerolinea`.`aeropuerto` (`tag` ASC) ;
+CREATE UNIQUE INDEX `tag_UNIQUE` ON `Aerolinea`.`aeropuerto` (`tag` ) ;
 
 
 -- -----------------------------------------------------
@@ -488,6 +489,8 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`terminal` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
+CREATE UNIQUE INDEX `ux_terminal_aeropuerto_nombre` ON `Aerolinea`.`terminal` (`aeropuerto_idaeropuerto` , `nombre` ) ;
+
 
 -- -----------------------------------------------------
 -- Table `Aerolinea`.`puerta`
@@ -529,6 +532,8 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`puerta` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
+CREATE UNIQUE INDEX `ux_puerta_codigo` ON `Aerolinea`.`puerta` (`aeropuerto_idaeropuerto` , `codigo` ) ;
+
 
 -- -----------------------------------------------------
 -- Table `Aerolinea`.`modelo_aeronave`
@@ -564,42 +569,6 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`modelo_aeronave` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_modelo_aeronave_eliminado_por`
-    FOREIGN KEY (`eliminado_por`)
-    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `Aerolinea`.`configuracion_cabina`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `Aerolinea`.`configuracion_cabina` ;
-
-CREATE TABLE IF NOT EXISTS `Aerolinea`.`configuracion_cabina` (
-  `idconfiguracion_cabina` INT NOT NULL AUTO_INCREMENT,
-  `cabina` ENUM('primera clase', 'ejecutivo', 'economica') NOT NULL,
-  `fila` INT NOT NULL,
-  `asiento_por_fila` INT NOT NULL,
-  `creado_en` DATETIME NULL,
-  `actualizado_en` DATETIME NULL,
-  `eliminado_en` DATETIME NULL,
-  `creado_por` INT NULL,
-  `actualizado_por` INT NULL,
-  `eliminado_por` INT NULL,
-  `eliminado_motivo` VARCHAR(200) NULL,
-  PRIMARY KEY (`idconfiguracion_cabina`),
-  CONSTRAINT `fk_configuracion_cabina_creado_por`
-    FOREIGN KEY (`creado_por`)
-    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_configuracion_cabina_actualizado_por`
-    FOREIGN KEY (`actualizado_por`)
-    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_configuracion_cabina_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
     REFERENCES `Aerolinea`.`usuario` (`idusuario`)
     ON DELETE NO ACTION
@@ -649,7 +618,49 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`aeronave` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `matricula_UNIQUE` ON `Aerolinea`.`aeronave` (`matricula` ASC) ;
+CREATE UNIQUE INDEX `matricula_UNIQUE` ON `Aerolinea`.`aeronave` (`matricula` ) ;
+
+
+-- -----------------------------------------------------
+-- Table `Aerolinea`.`configuracion_cabina`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `Aerolinea`.`configuracion_cabina` ;
+
+CREATE TABLE IF NOT EXISTS `Aerolinea`.`configuracion_cabina` (
+  `idconfiguracion_cabina` INT NOT NULL AUTO_INCREMENT,
+  `cabina` ENUM('primera clase', 'ejecutivo', 'economica') NOT NULL,
+  `fila` INT NOT NULL,
+  `asiento_por_fila` INT NOT NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  `aeronave_idaeronave` INT NOT NULL,
+  PRIMARY KEY (`idconfiguracion_cabina`),
+  CONSTRAINT `fk_configuracion_cabina_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_configuracion_cabina_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_configuracion_cabina_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_configuracion_cabina_aeronave1`
+    FOREIGN KEY (`aeronave_idaeronave`)
+    REFERENCES `Aerolinea`.`aeronave` (`idaeronave`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
@@ -697,11 +708,9 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`asiento` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `cabina_UNIQUE` ON `Aerolinea`.`asiento` (`cabina` ASC) ;
+CREATE UNIQUE INDEX `ux_asiento_posicion` ON `Aerolinea`.`asiento` (`aeronave_idaeronave` , `fila`, `columna` ) ;
 
-CREATE UNIQUE INDEX `fila_UNIQUE` ON `Aerolinea`.`asiento` (`fila` ASC) ;
-
-CREATE UNIQUE INDEX `columna_UNIQUE` ON `Aerolinea`.`asiento` (`columna` ASC) ;
+CREATE UNIQUE INDEX `ux_asiento_codigo` ON `Aerolinea`.`asiento` (`aeronave_idaeronave` , `codigo_asiento` ) ;
 
 
 -- -----------------------------------------------------
@@ -713,7 +722,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`ruta` (
   `idruta` INT NOT NULL AUTO_INCREMENT,
   `distancia_km` INT NOT NULL,
   `timepo_estimado` SMALLINT NULL,
-  `activo` TINYINT NULL,
+  `activo` TINYINT NOT NULL,
   `creado_en` DATETIME NULL,
   `actualizado_en` DATETIME NULL,
   `eliminado_en` DATETIME NULL,
@@ -751,6 +760,8 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`ruta` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `ux_ruta_od` ON `Aerolinea`.`ruta` (`origen_aeropuerto` , `destino_aeropuerto` ) ;
 
 
 -- -----------------------------------------------------
@@ -794,7 +805,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`tarifa` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `nombre_UNIQUE` ON `Aerolinea`.`tarifa` (`nombre` ASC) ;
+CREATE UNIQUE INDEX `nombre_UNIQUE` ON `Aerolinea`.`tarifa` (`nombre` ) ;
 
 
 -- -----------------------------------------------------
@@ -841,6 +852,41 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
+-- Table `Aerolinea`.`tripulacion`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `Aerolinea`.`tripulacion` ;
+
+CREATE TABLE IF NOT EXISTS `Aerolinea`.`tripulacion` (
+  `idtripulacion` INT NOT NULL AUTO_INCREMENT,
+  `estado` ENUM('PUBLICADA', 'BORRADOR', 'CERRADA') NOT NULL,
+  `nota` VARCHAR(200) NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  PRIMARY KEY (`idtripulacion`),
+  CONSTRAINT `fk_tripulacion_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tripulacion_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tripulacion_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
 -- Table `Aerolinea`.`vuelo`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `Aerolinea`.`vuelo` ;
@@ -865,6 +911,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`vuelo` (
   `aeropuerto_idaeropuerto` INT NOT NULL,
   `ruta_idruta` INT NOT NULL,
   `aeronave_idaeronave` INT NOT NULL,
+  `tripulacion_idtripulacion` INT NOT NULL,
   PRIMARY KEY (`idvuelo`),
   CONSTRAINT `fk_vuelo_puerta1`
     FOREIGN KEY (`puerta_idpuerta`)
@@ -904,6 +951,11 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`vuelo` (
   CONSTRAINT `fk_vuelo_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
     REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_vuelo_tripulacion1`
+    FOREIGN KEY (`tripulacion_idtripulacion`)
+    REFERENCES `Aerolinea`.`tripulacion` (`idtripulacion`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -955,6 +1007,10 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`asiento_vuelo` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `ux_asiento_vuelo` ON `Aerolinea`.`asiento_vuelo` (`vuelo_idvuelo` , `asiento_idasiento` ) ;
+
+CREATE UNIQUE INDEX `ux_cod_asiento_vuelo` ON `Aerolinea`.`asiento_vuelo` (`vuelo_idvuelo` , `codigo_asiento` ) ;
 
 
 -- -----------------------------------------------------
@@ -1012,7 +1068,7 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`reserva` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `codigo_reserva_UNIQUE` ON `Aerolinea`.`reserva` (`codigo_reserva` ASC) ;
+CREATE UNIQUE INDEX `codigo_reserva_UNIQUE` ON `Aerolinea`.`reserva` (`codigo_reserva` ) ;
 
 
 -- -----------------------------------------------------
@@ -1065,6 +1121,8 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`reserva_persona` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `ux_reserva_persona` ON `Aerolinea`.`reserva_persona` (`reserva_idreserva` , `persona_idpersona` ) ;
 
 
 -- -----------------------------------------------------
@@ -1125,11 +1183,104 @@ CREATE TABLE IF NOT EXISTS `Aerolinea`.`boleto` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
-CREATE UNIQUE INDEX `vuelo_idvuelo_UNIQUE` ON `Aerolinea`.`boleto` (`vuelo_idvuelo` ASC) ;
+CREATE UNIQUE INDEX `ux_boleto_pasajero_vuelo` ON `Aerolinea`.`boleto` (`reserva_persona_idreserva_persona` , `vuelo_idvuelo` ) ;
 
-CREATE UNIQUE INDEX `reserva_idreserva_UNIQUE` ON `Aerolinea`.`boleto` (`reserva_idreserva` ASC) ;
 
-CREATE UNIQUE INDEX `reserva_persona_idreserva_persona_UNIQUE` ON `Aerolinea`.`boleto` (`reserva_persona_idreserva_persona` ASC) ;
+-- -----------------------------------------------------
+-- Table `Aerolinea`.`rango_tripulacion`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `Aerolinea`.`rango_tripulacion` ;
+
+CREATE TABLE IF NOT EXISTS `Aerolinea`.`rango_tripulacion` (
+  `idrango_tripulacion` INT NOT NULL AUTO_INCREMENT,
+  `codigo` VARCHAR(40) NOT NULL,
+  `descripcion` VARCHAR(200) NULL,
+  `activo` TINYINT NOT NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivo` VARCHAR(200) NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  PRIMARY KEY (`idrango_tripulacion`),
+  CONSTRAINT `fk_rango_tripulacion_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_rango_tripulacion_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_rango_triupulacion_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+CREATE UNIQUE INDEX `codigo_UNIQUE` ON `Aerolinea`.`rango_tripulacion` (`codigo`) ;
+
+
+-- -----------------------------------------------------
+-- Table `Aerolinea`.`tripulacion_miembro`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `Aerolinea`.`tripulacion_miembro` ;
+
+CREATE TABLE IF NOT EXISTS `Aerolinea`.`tripulacion_miembro` (
+  `idtripulacion_miembro` INT NOT NULL AUTO_INCREMENT,
+  `tripulacion_idtripulacion` INT NOT NULL,
+  `rango_tripulacion_idrango_tripulacion` INT NOT NULL,
+  `usuario_idusuario` INT NOT NULL,
+  `creado_en` DATETIME NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
+  `eliminado_motivio` VARCHAR(200) NULL,
+  PRIMARY KEY (`idtripulacion_miembro`),
+  CONSTRAINT `fk_tripulacion_miembro_tripulacion1`
+    FOREIGN KEY (`tripulacion_idtripulacion`)
+    REFERENCES `Aerolinea`.`tripulacion` (`idtripulacion`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tripulacion_miembro_rango_tripulacion1`
+    FOREIGN KEY (`rango_tripulacion_idrango_tripulacion`)
+    REFERENCES `Aerolinea`.`rango_tripulacion` (`idrango_tripulacion`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tripulacion_miembro_usuario1`
+    FOREIGN KEY (`usuario_idusuario`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tripulacion_miembro_creado_por`
+    FOREIGN KEY (`creado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tripulacion_miembro_actualizado_por`
+    FOREIGN KEY (`actualizado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_tripulacion_miembro_eliminado_por`
+    FOREIGN KEY (`eliminado_por`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+CREATE INDEX `ix_trip_miembro_trip` ON `Aerolinea`.`tripulacion_miembro` (`tripulacion_idtripulacion`) ;
+
+CREATE INDEX `ix_trip_miembro_rango` ON `Aerolinea`.`tripulacion_miembro` (`rango_tripulacion_idrango_tripulacion`) ;
+
+CREATE UNIQUE INDEX `ux_tripulacion_usuario` ON `Aerolinea`.`tripulacion_miembro` (`tripulacion_idtripulacion` , `usuario_idusuario` ) ;
+
+CREATE UNIQUE INDEX `ux_tripulacion_rango` ON `Aerolinea`.`tripulacion_miembro` (`tripulacion_idtripulacion` , `rango_tripulacion_idrango_tripulacion` ) ;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;

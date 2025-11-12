@@ -10,58 +10,36 @@ USE `mydb`;
 --      no se pierde el registro de persona; solo se “desasocia” el autor.
 -- ═══════════════════════════════════════════════════════════════════════════════
 
--- ───────────────────────────────────────────────────────────────────────────────
--- Limpieza (solo para desarrollo)
--- ───────────────────────────────────────────────────────────────────────────────
-DROP TABLE IF EXISTS `persona`;
+-- -----------------------------------------------------
+-- Table `Aerolinea`.`persona`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `Aerolinea`.`persona` ;
 
--- ───────────────────────────────────────────────────────────────────────────────
--- Definición de tabla
--- ───────────────────────────────────────────────────────────────────────────────
-CREATE TABLE `persona` (
-  -- Identificador único
-  `idpersona`         INT NOT NULL AUTO_INCREMENT,
-
-  -- Identidad
-  `nombre`            VARCHAR(80) NOT NULL,
-  `apellido`          VARCHAR(80) NOT NULL,
-
-  -- Auditoría temporal
-  `creado_en`         DATETIME NOT NULL,
-  `actualizado_en`    DATETIME NULL,
-  `eliminado_en`      DATETIME NULL,
-
-  -- Auditoría de usuarios (autores de acciones)
-  `creado_por`        INT NULL,
-  `actualizado_por`   INT NULL,
-  `eliminado_por`     INT NULL,
-
-  -- Clave primaria
+CREATE TABLE IF NOT EXISTS `Aerolinea`.`persona` (
+  `idpersona` INT NOT NULL AUTO_INCREMENT,
+  `nombre` VARCHAR(80) NOT NULL,
+  `apellido` VARCHAR(80) NOT NULL,
+  `fecha_de_nacimiento` DATE NOT NULL,
+  `creado_en` DATETIME NOT NULL,
+  `actualizado_en` DATETIME NULL,
+  `eliminado_en` DATETIME NULL,
+  `creado_por` INT NULL,
+  `actualizado_por` INT NULL,
+  `eliminado_por` INT NULL,
   PRIMARY KEY (`idpersona`),
-
-  -- ────────────────
-  -- Claves foráneas (auditoría)
-  -- ────────────────
   CONSTRAINT `fk_persona_creado_por`
     FOREIGN KEY (`creado_por`)
-    REFERENCES `usuario` (`idusuario`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
     ON DELETE SET NULL
     ON UPDATE NO ACTION,
-
   CONSTRAINT `fk_persona_actualizado_por`
     FOREIGN KEY (`actualizado_por`)
-    REFERENCES `usuario` (`idusuario`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
     ON DELETE SET NULL
     ON UPDATE NO ACTION,
-
   CONSTRAINT `fk_persona_eliminado_por`
     FOREIGN KEY (`eliminado_por`)
-    REFERENCES `usuario` (`idusuario`)
+    REFERENCES `Aerolinea`.`usuario` (`idusuario`)
     ON DELETE SET NULL
-    ON UPDATE NO ACTION
-)
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  FIN TABLA: PERSONA
--- ═══════════════════════════════════════════════════════════════════════════════
